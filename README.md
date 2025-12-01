@@ -53,11 +53,6 @@ flowchart TB
         ENRICH -->|"3. Embed"| OPENAI["OpenAI text-embedding-3-small"]
         OPENAI -->|"4. Store"| CHUNKS
     end
-
-    style UserSearch fill:#e8f5e9
-    style ContentSearch fill:#e3f2fd
-    style Database fill:#fff3e0
-    style DataFlow fill:#fce4ec
 ```
 
 ## Tech Stack
