@@ -1,4 +1,4 @@
-import { pgTable, serial, text, integer, timestamp, index } from 'drizzle-orm/pg-core'
+import { pgTable, serial, text, integer, timestamp, index, unique } from 'drizzle-orm/pg-core'
 import { vector } from 'drizzle-orm/pg-core'
 import { sql } from 'drizzle-orm'
 
@@ -22,7 +22,7 @@ export const articleAuthors = pgTable('article_authors', {
     articleId: integer('article_id').references(() => articles.id, { onDelete: 'cascade' }).notNull(),
     userId: integer('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull()
 }, (table) => [
-    index('article_authors_unique_idx').on(table.articleId, table.userId)
+    unique('article_authors_unique_idx').on(table.articleId, table.userId)
 ])
 
 export const articleChunks = pgTable('article_chunks', {
@@ -34,7 +34,8 @@ export const articleChunks = pgTable('article_chunks', {
     embedding: vector('embedding', { dimensions: 1536 }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow()
 }, (table) => [
-    index('article_chunks_article_id_idx').on(table.articleId)
+    index('article_chunks_article_id_idx').on(table.articleId),
+    index('article_chunks_embedding_idx').using('hnsw', table.embedding.op('vector_cosine_ops'))
 ])
 
 export const users = pgTable('users', {
