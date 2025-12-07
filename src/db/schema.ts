@@ -8,11 +8,11 @@ export const articles = pgTable('articles', {
     slug: text('slug').notNull(),
     teaser: text('teaser'),
     title: text('title').notNull(),
-    category: text('category'),
+    category: text('category').array(),
     tags: text('tags').array(),
     publishedAt: timestamp('published_at', { withTimezone: true }).notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
-    embedding: vector('embedding', { dimensions: 1536 })
+    embedding: vector('embedding', { dimensions: 1024 })
 }, (table) => [
     index('articles_embedding_idx').using('hnsw', table.embedding.op('vector_cosine_ops'))
 ])
@@ -31,7 +31,7 @@ export const articleChunks = pgTable('article_chunks', {
     chunkIndex: integer('chunk_index').notNull(),
     rawContent: text('raw_content').notNull(),
     embeddedContent: text('embedded_content').notNull(),
-    embedding: vector('embedding', { dimensions: 1536 }),
+    embedding: vector('embedding', { dimensions: 1024 }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow()
 }, (table) => [
     index('article_chunks_article_id_idx').on(table.articleId),

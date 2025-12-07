@@ -1,81 +1,6 @@
 import { JSDOM } from 'jsdom'
-
-interface ParsedNode {
-    tag: string
-    text: string
-    classes?: string[]
-}
-
-interface ContentChunk {
-    title: string
-    author: string
-    date: string
-    category: string
-    index: number
-    content: string
-}
-
-interface PostData {
-    ID: number,
-    post_author: string,
-    post_date: string,
-    post_date_gmt: string,
-    post_content: string
-    about_the_author: {
-        author_role: string,
-        author_bio: string
-    }[],
-    tag: {
-        term_id: number,
-        name: string,
-        slug: string,
-        term_group: number,
-        term_taxonomy_id: number,
-        taxonomy: string,
-        description: string,
-        parent: number,
-        count: number,
-        filter: string
-    }[],
-    category: {
-        term_id: number,
-        name: string,
-        slug: string,
-        term_group: number,
-        term_taxonomy_id: number,
-        taxonomy: string,
-        description: string,
-        parent: number,
-        count: number,
-        filter: string,
-        cat_ID: number,
-        category_count: number,
-        category_description: string,
-        cat_name: string,
-        category_nicename: string,
-        category_parent: number
-    }[],
-    post_title: string,
-    post_excerpt: string,
-    post_status: string,
-    comment_status: string,
-    ping_status: string,
-    post_password: string,
-    post_name: string,
-    to_ping: string,
-    pinged: string,
-    post_modified: string,
-    post_modified_gmt: string,
-    post_content_filtered: string,
-    post_parent: number,
-    guid: string,
-    menu_order: number,
-    post_type: string,
-    post_mime_type: string,
-    comment_count: string,
-    filter: string,
-    origin_resource: string
-}
+import { PostData, ParsedNode, ContentChunk } from '$src/types'
+import { toNames } from '$src/utils'
 
 export class Chunk {
     private allowedTags = ['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li', 'blockquote', 'figcaption', 'td', 'th']
@@ -132,19 +57,19 @@ export class Chunk {
         let currentTexts: string[] = []
         let currentLength = 0
 
-        const category = Array.isArray(postData.category)
-            ? postData.category.map(c => c.name).join(', ')
-            : postData.category.name
+        console.log(Array.isArray(postData.category), postData.category)
 
-        const author = Array.isArray(postData.post_author)
-            ? postData.post_author.map(a => a.name).join(', ')
-            : postData.post_author
+        const category = toNames(postData.category)
+        const author = toNames(postData.post_author)
+        const tags = toNames(postData.tag)
+
 
         const baseChunk = {
             title: postData.post_title,
             author,
             date: postData.post_date,
-            category
+            category,
+            tags
         }
 
         const pushChunk = (content: string) => {

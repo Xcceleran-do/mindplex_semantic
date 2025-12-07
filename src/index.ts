@@ -1,10 +1,13 @@
 import { Hono } from 'hono'
+import { createMiddleware } from "hono/factory";
+import { drizzle } from 'drizzle-orm/node-postgres'
+
 import articles from '$src/routes/articles'
 import search from '$src/routes/search'
 import usersRoute from '$src/routes/users'
 import * as schema from '$src/db/schema'
-import { drizzle } from 'drizzle-orm/node-postgres'
-import { createMiddleware } from "hono/factory";
+import ingest from '$src/routes/ingest'
+
 import { AppContext } from '$src/types'
 
 const app = new Hono<AppContext>()
@@ -17,6 +20,8 @@ const dbMiddleware = createMiddleware(async (c, next) => {
 });
 
 app.use(dbMiddleware)
+
+app.route('/ingest', ingest)
 app.route('/articles', articles)
 app.route('/search', search)
 app.route('/users', usersRoute)
