@@ -1,0 +1,30 @@
+name: Deploy
+
+on:
+    push:
+        branches: [main, develop]
+    pull_request:
+
+jobs:
+    deploy:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: dagger/dagger-for-github@v5
+
+            - name: Deploy
+              run: |
+                  git config --global url."https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/".insteadOf "https://github.com/"
+
+                  dagger call \
+                    --mod github.com/Xcceleran-do/mindplex_infra@main \
+                    semantic deploy \
+                    --source . \
+                    --env dev \
+                    --aws-access-key env:AWS_ACCESS_KEY_ID \
+                    --aws-secret-key env:AWS_SECRET_ACCESS_KEY
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+                  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
