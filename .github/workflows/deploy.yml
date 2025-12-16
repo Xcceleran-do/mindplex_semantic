@@ -17,15 +17,8 @@ jobs:
 
             #   git config --global url."https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/".insteadOf "https://github.com/"
             - name: Deploy
-              run: |
+              run: dagger call -m ./infra/dagger semantic deploy --source . --env dev --aws-access-key env:AWS_ACCESS_KEY_ID --aws-secret-key env:AWS_SECRET_ACCESS_KEY
 
-                  dagger call \
-                    -m github.com/Xcceleran-do/mindplex_infra/dagger@main \
-                    semantic deploy \
-                    --source . \
-                    --env dev \
-                    --aws-access-key env:AWS_ACCESS_KEY_ID \
-                    --aws-secret-key env:AWS_SECRET_ACCESS_KEY
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
                   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
