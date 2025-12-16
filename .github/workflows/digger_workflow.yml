@@ -11,6 +11,13 @@ on:
 jobs:
     digger-job:
         runs-on: ubuntu-latest
+        permissions:
+            contents: write
+            id-token: write
+            pull-requests: write
+            statuses: write
+            issues: write
+            checks: write
 
         steps:
             - name: Checkout
