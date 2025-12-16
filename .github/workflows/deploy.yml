@@ -1,3 +1,35 @@
+# name: Deploy
+
+# on:
+#     push:
+#         branches: [main, develop]
+#     pull_request:
+
+# jobs:
+#     deploy:
+#         runs-on: ubuntu-latest
+#         steps:
+#             - uses: actions/checkout@v4
+
+#             - uses: dagger/dagger-for-github@v6
+#               with:
+#                   version: "latest"
+
+#             #   git config --global url."https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/".insteadOf "https://github.com/"
+#             - name: Deploy
+#               run: |
+#                   dagger call \
+#                   -m github.com/Xcceleran-do/mindplex_infra/dagger@main \
+#                   semantic deploy \
+#                   --source . \
+#                   --env dev \
+#                   --aws-access-key env:AWS_ACCESS_KEY_ID \
+#                   --aws-secret-key env:AWS_SECRET_ACCESS_KEY
+
+#               env:
+#                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#                   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+#                   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 name: Deploy
 
 on:
@@ -11,22 +43,35 @@ jobs:
         steps:
             - uses: actions/checkout@v4
 
+            # Checkout Infra to ./infra folder
+            - name: Checkout Infra
+              uses: actions/checkout@v4
+              with:
+                  repository: Xcceleran-do/mindplex_infra
+                  path: infra
+
+            # [DEBUG] PROVE the file is there. If this fails, we know checkout is broken.
+            - name: Verify Files
+              run: |
+                  echo "Looking for dagger.json..."
+                  ls -l infra/dagger/dagger.json
+
             - uses: dagger/dagger-for-github@v6
               with:
                   version: "latest"
 
-            #   git config --global url."https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/".insteadOf "https://github.com/"
             - name: Deploy
               run: |
-                  dagger call \
-                  -m github.com/Xcceleran-do/mindplex_infra/dagger@main \
-                  semantic deploy \
-                  --source . \
-                  --env dev \
-                  --aws-access-key env:AWS_ACCESS_KEY_ID \
-                  --aws-secret-key env:AWS_SECRET_ACCESS_KEY
+                  # Go into the directory where dagger.json lives
+                  cd infra/dagger
 
+                  # Run dagger (no -m flag needed now!)
+                  # Note: We change --source to "../../" because we moved down 2 folders
+                  dagger call semantic deploy \
+                    --source ../../ \
+                    --env dev \
+                    --aws-access-key env:AWS_ACCESS_KEY_ID \
+                    --aws-secret-key env:AWS_SECRET_ACCESS_KEY
               env:
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
                   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
                   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
