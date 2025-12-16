@@ -41,47 +41,15 @@ jobs:
     deploy:
         runs-on: ubuntu-latest
         steps:
-            # 1. Checkout App Code
             - uses: actions/checkout@v4
 
-            # 2. Checkout Infra Code to './infra'
-            - name: Checkout Infra
-              uses: actions/checkout@v4
-              with:
-                  repository: Xcceleran-do/mindplex_infra
-                  path: infra
-                  # Uncomment if you make it private again
-                  # token: ${{ secrets.GH_PAT }}
-
-            # 3. [CRITICAL FIX] Remove .git from infra to prevent Dagger confusion
-            - name: Sanitize Infra
-              run: |
-                  rm -rf infra/.git
-                  echo "▼▼▼ DEBUG: LISTING FILES ▼▼▼"
-                  ls -R infra/dagger || echo "❌ FOLDER NOT FOUND"
-                  echo "▲▲▲ DEBUG: END LISTING ▲▲▲"
-
-            # 4. Install Dagger (Latest)
             - uses: dagger/dagger-for-github@v6
               with:
                   version: "latest"
-
-            # 5. Run Dagger
-            - name: Deploy
-              run: |
-                  # Move into the folder so '.' becomes the module root
-                  cd infra/dagger
-
-                  # Verify we are in the right place
-                  echo "Current dir: $(pwd)"
-
-                  # Call Dagger
-                  # We use --source ../../ because we are 2 levels deep (infra/dagger)
-                  dagger call semantic deploy \
-                    --source ../../ \
-                    --env dev \
-                    --aws-access-key env:AWS_ACCESS_KEY_ID \
-                    --aws-secret-key env:AWS_SECRET_ACCESS_KEY
+                  verb: call
+                  module: github.com/Xcceleran-do/mindplex_infra/dagger@main
+                  args: semantic deploy --source . --env dev --aws-access-key env:AWS_ACCESS_KEY_ID --aws-secret-key env:AWS_SECRET_ACCESS_KEY
+                  cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
               env:
                   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
                   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
