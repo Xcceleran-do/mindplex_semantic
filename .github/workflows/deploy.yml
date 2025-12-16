@@ -41,32 +41,42 @@ jobs:
     deploy:
         runs-on: ubuntu-latest
         steps:
+            # 1. Checkout App Code
             - uses: actions/checkout@v4
 
-            # Checkout Infra to ./infra folder
+            # 2. Checkout Infra Code to './infra'
             - name: Checkout Infra
               uses: actions/checkout@v4
               with:
                   repository: Xcceleran-do/mindplex_infra
                   path: infra
+                  # Uncomment if you make it private again
+                  # token: ${{ secrets.GH_PAT }}
 
-            # [DEBUG] PROVE the file is there. If this fails, we know checkout is broken.
-            - name: Verify Files
+            # 3. [CRITICAL FIX] Remove .git from infra to prevent Dagger confusion
+            - name: Sanitize Infra
               run: |
-                  echo "Looking for dagger.json..."
-                  ls -l infra/dagger/dagger.json
+                  rm -rf infra/.git
+                  echo "▼▼▼ DEBUG: LISTING FILES ▼▼▼"
+                  ls -R infra/dagger || echo "❌ FOLDER NOT FOUND"
+                  echo "▲▲▲ DEBUG: END LISTING ▲▲▲"
 
+            # 4. Install Dagger (Latest)
             - uses: dagger/dagger-for-github@v6
               with:
                   version: "latest"
 
+            # 5. Run Dagger
             - name: Deploy
               run: |
-                  # Go into the directory where dagger.json lives
+                  # Move into the folder so '.' becomes the module root
                   cd infra/dagger
 
-                  # Run dagger (no -m flag needed now!)
-                  # Note: We change --source to "../../" because we moved down 2 folders
+                  # Verify we are in the right place
+                  echo "Current dir: $(pwd)"
+
+                  # Call Dagger
+                  # We use --source ../../ because we are 2 levels deep (infra/dagger)
                   dagger call semantic deploy \
                     --source ../../ \
                     --env dev \
