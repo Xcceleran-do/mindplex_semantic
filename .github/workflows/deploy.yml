@@ -89,11 +89,18 @@ jobs:
                   TAG="pr-${{ steps.pr.outputs.number }}-$(echo ${{ steps.pr.outputs.sha }} | cut -c1-7)"
                   ENV="pr-${{ steps.pr.outputs.number }}"
 
-                  curl -X POST \
-                    -H "Authorization: token ${{ secrets.INFRA_REPO_PAT }}" \
-                    -H "Accept: application/vnd.github.v3+json" \
-                    https://api.github.com/repos/Xcceleran-do/mindplex_infra/actions/workflows/digger.yml/dispatches \
-                    -d "{\"ref\":\"main\",\"inputs\":{\"environment\":\"${ENV}\",\"image_tag\":\"${TAG}\",\"action\":\"apply\"}}"
+                  echo "Triggering deployment..."
+                  echo "Environment: ${ENV}"
+                  echo "Tag: ${TAG}"
+
+                  RESPONSE=$(curl -v -X POST \
+                  -H "Authorization: token ${{ secrets.INFRA_REPO_PAT }}" \
+                  -H "Accept: application/vnd.github.v3+json" \
+                  https://api.github.com/repos/Xcceleran-do/mindplex_infra/actions/workflows/digger.yml/dispatches \
+                  -d "{\"ref\":\"main\",\"inputs\":{\"environment\":\"${ENV}\",\"image_tag\":\"${TAG}\",\"action\":\"apply\"}}" \
+                  2>&1)
+
+                  echo "Response: ${RESPONSE}"
 
     cleanup:
         if: github.event_name == 'pull_request' && github.event.action == 'closed'
