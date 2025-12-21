@@ -9,4 +9,4 @@ hooks:
     pre:
       - type: env
         name: TF_VAR_image_tag
-        cmd: ["echo", "${TERRATEAM_GIT_SHA}"]
+        cmd: ["sh", "-c", "echo $TERRATEAM_GIT_SHA"]
