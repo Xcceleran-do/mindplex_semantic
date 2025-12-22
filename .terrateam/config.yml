@@ -4,8 +4,9 @@ dirs:
   "terraform/dev":
     tags: ["dev"]
     when_modified:
-      file_patterns: ["**"]
+      file_patterns: ["**/*"]
       autoplan: true
+      autoapply: true
 
 apply_requirements:
   checks:
