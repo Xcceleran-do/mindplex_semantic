@@ -21,7 +21,6 @@ data "terraform_remote_state" "foundation" {
   }
 }
 
-
 variable "image_tag" {
   description = "Docker image tag (Injected by CI)"
   type        = string
@@ -50,4 +49,27 @@ module "mindplex_semantic" {
   image_url = "${data.terraform_remote_state.foundation.outputs.ecr_repository_url_semantic}:${var.image_tag}"
 
   container_port = 3000
+
+  environment_vars = [
+    {
+      name  = "DB_HOST"
+      value = data.terraform_remote_state.foundation.outputs.db_endpoint
+    },
+    {
+      name  = "DB_USER"
+      value = "mindplex_admin"
+    },
+    {
+      name  = "DB_PASS"
+      value = var.db_password
+    },
+    {
+      name  = "DB_NAME"
+      value = "mindplex_shared"
+    },
+    {
+      name  = "DATABASE_URL"
+      value = "postgresql://mindplex_admin:${var.db_password}@${data.terraform_remote_state.foundation.outputs.db_endpoint}:5432/mindplex_shared"
+    }
+  ]
 }
