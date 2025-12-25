@@ -21,10 +21,15 @@ data "terraform_remote_state" "foundation" {
   }
 }
 
-
 variable "image_tag" {
   description = "Docker image tag (Injected by CI)"
   type        = string
+}
+
+variable "DB_PASSWORD" {
+  description = "Database password passed via env var TF_VAR_DB_PASSWORD"
+  type        = string
+  sensitive   = true
 }
 
 
@@ -42,12 +47,33 @@ module "mindplex_semantic" {
 
   enable_alb       = true
   alb_listener_arn = data.terraform_remote_state.foundation.outputs.https_listener_arn
+  host_header      = "dev-search.mindplex.ai"
+  path_pattern     = "/*"
+  rule_priority    = 10
 
-  host_header   = "dev-search.mindplex.ai"
-  path_pattern  = "/*"
-  rule_priority = 10
-
-  image_url = "${data.terraform_remote_state.foundation.outputs.ecr_repository_url_semantic}:${var.image_tag}"
-
+  image_url      = "${data.terraform_remote_state.foundation.outputs.ecr_repository_url_semantic}:${var.image_tag}"
   container_port = 3000
+
+  environment_vars = [
+    {
+      name  = "DB_HOST"
+      value = data.terraform_remote_state.foundation.outputs.db_endpoint
+    },
+    {
+      name  = "DB_USER"
+      value = "mindplex_admin"
+    },
+    {
+      name  = "DB_PASS"
+      value = var.DB_PASSWORD
+    },
+    {
+      name  = "DB_NAME"
+      value = "mindplex_shared"
+    },
+    {
+      name  = "DATABASE_URL"
+      value = "postgresql://mindplex_admin:${var.DB_PASSWORD}@${data.terraform_remote_state.foundation.outputs.db_endpoint}:5432/mindplex_shared"
+    }
+  ]
 }
