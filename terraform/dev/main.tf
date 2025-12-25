@@ -77,7 +77,7 @@ module "mindplex_semantic" {
     },
     {
       name  = "TARGET_DATABASE_URL"
-      value = "postgresql://mindplex_admin:${var.DB_PASSWORD}@${data.terraform_remote_state.foundation.outputs.db_endpoint}:5432/mindplex_shared"
+      value = "postgresql://mindplex_admin:${var.DB_PASSWORD}@${data.terraform_remote_state.foundation.outputs.db_endpoint}:5432/mindplex_semantic"
     }
   ]
 }
