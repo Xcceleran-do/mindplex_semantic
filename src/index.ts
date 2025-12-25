@@ -44,7 +44,9 @@ app.get('/health', async (c) => {
     }
 
   } catch (error) {
-    return c.json({ error: 'Failed to check database health' }, 500);
+    console.error(error)
+    const msg = JSON.stringify(error)
+    return c.json({ error: 'Failed to check database health ' + msg }, 500);
   }
 })
 
@@ -54,6 +56,7 @@ app.get('/get-extensions', async (c) => {
     const result = await db.execute('SELECT * FROM pg_extension;');
     return c.json({ extensions: result.rows });
   } catch (error) {
+    console.log(error)
     return c.json({ error: 'Failed to get database extensions' }, 500);
   }
 });
@@ -68,6 +71,7 @@ app.get('/bootstrap-extensions', async (c) => {
 
     return c.json({ message: 'Database extensions installed successfully' });
   } catch (error) {
+    console.log(error)
     return c.json({ error: 'Failed to install database extensions' }, 500);
   }
 })
