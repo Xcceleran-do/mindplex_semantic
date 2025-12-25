@@ -45,7 +45,8 @@ app.get('/health', async (c) => {
 
   } catch (error) {
     console.error(error)
-    return c.json({ error: 'Failed to check database health' }, 500);
+    const msg = JSON.stringify(error)
+    return c.json({ error: 'Failed to check database health ' + msg }, 500);
   }
 })
 
