@@ -26,6 +26,12 @@ variable "image_tag" {
   type        = string
 }
 
+variable "DB_PASSWORD" {
+  description = "Database password passed via env var TF_VAR_DB_PASSWORD"
+  type        = string
+  sensitive   = true
+}
+
 
 module "mindplex_semantic" {
   source = "git::https://github.com/Xcceleran-do/mindplex_infra.git//modules/app?ref=main"
@@ -59,7 +65,7 @@ module "mindplex_semantic" {
     },
     {
       name  = "DB_PASS"
-      value = var.TF_VAR_DB_PASSWORD
+      value = var.DB_PASSWORD
     },
     {
       name  = "DB_NAME"
@@ -67,7 +73,7 @@ module "mindplex_semantic" {
     },
     {
       name  = "DATABASE_URL"
-      value = "postgresql://mindplex_admin:${var.TF_VAR_DB_PASSWORD}@${data.terraform_remote_state.foundation.outputs.db_endpoint}:5432/mindplex_shared"
+      value = "postgresql://mindplex_admin:${var.DB_PASSWORD}@${data.terraform_remote_state.foundation.outputs.db_endpoint}:5432/mindplex_shared"
     }
   ]
 }
