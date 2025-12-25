@@ -1,6 +1,7 @@
 import { Hono } from 'hono'
 import { createMiddleware } from "hono/factory";
 import { drizzle } from 'drizzle-orm/node-postgres'
+import { Pool } from "pg";
 
 import articles from '$src/routes/articles'
 import search from '$src/routes/search'
@@ -12,7 +13,14 @@ import { AppContext } from '$src/types'
 
 const app = new Hono<AppContext>()
 
-const db = drizzle(process.env.DATABASE_URL!, { schema })
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false
+  }
+});
+
+const db = drizzle({ schema, client: pool })
 
 const dbMiddleware = createMiddleware(async (c, next) => {
   c.set('db', db);
