@@ -13,4 +13,5 @@ ENV NODE_ENV=production
 RUN bun install --frozen-lockfile --production
 COPY . .
 USER bun
-CMD ["bun", "src/index.ts"]
+
+CMD ["/bin/sh", "-c", "bun run db:setup && bun run db:migrate && bun src/index.ts"]
