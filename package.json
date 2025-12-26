@@ -2,8 +2,11 @@
   "name": "mindplex_semantic",
   "scripts": {
     "dev": "bun run --hot src/index.ts",
-    "migrate:dev": "bunx drizzle-kit push",
-    "db:studio": "bunx drizzle-kit studio"
+    "db:dev-migrate": "bunx drizzle-kit push",
+    "db:generate": "bun run drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:studio": "bunx drizzle-kit studio",
+    "db:setup": "bun run src/scripts/bootstrap.ts"
   },
   "dependencies": {
     "@aws-sdk/client-bedrock-runtime": "^3.943.0",
