@@ -1,13 +1,14 @@
 import { Hono } from 'hono'
 import { sql } from 'drizzle-orm'
-
+import { SearchQuerySchema } from './schema'
 import { AppContext } from '$src/types'
+import { vValidator } from '@hono/valibot-validator';
 
 const users = new Hono<AppContext>()
 
 export const getSearchScoreSql = (query: string) => sql`
   (
-    word_similarity(${query}, users.first_name || ' ' || users.last_name || ' ' || users.username || ' ' || users.email)
+    word_similarity(${query}, users.search_name)
     + (CASE WHEN users.first_name ILIKE ${query} THEN 2.0 ELSE 0 END) -- Tier 1: Exact Name (+2.0)
     + (CASE WHEN users.first_name ILIKE ${query} || '%' THEN 1.2 ELSE 0 END) -- Tier 2: Name Start (+1.2)
     + (CASE WHEN users.username ILIKE ${query} || '%' THEN 0.8 ELSE 0 END) -- Tier 3: Username Start (+0.8)
@@ -16,10 +17,8 @@ export const getSearchScoreSql = (query: string) => sql`
   )
 `;
 
-users.get('/', async (c) => {
-    const limit = Number(c.req.query('limit')) || 10
-    const offset = Number(c.req.query('offset')) || 0
-    const searchQuery = c.req.query('q') || ''
+users.get('/', vValidator('query', SearchQuerySchema), async (c) => {
+    const { limit, offset, q: searchQuery } = c.req.valid('query');
 
     const db = c.get('db')
     const schema = c.get('schema')
@@ -28,7 +27,6 @@ users.get('/', async (c) => {
         return c.json({ users: [] })
     }
 
-    const searchField = sql`(${schema.users.firstName} || ' ' || ${schema.users.lastName} || ' ' || ${schema.users.username} || ' ' || ${schema.users.email})`;
     const threshold = searchQuery.length < 5 ? 0.39 : 0.3;
 
     const users = await db.select({
@@ -43,7 +41,7 @@ users.get('/', async (c) => {
         (${schema.users.firstName} ILIKE ${searchQuery} || '%') 
         OR (${schema.users.username} ILIKE ${searchQuery} || '%') 
         OR (${schema.users.email} ILIKE ${searchQuery} || '%')
-        OR (word_similarity(${searchQuery}, ${searchField}) > ${threshold})
+        OR (word_similarity(${searchQuery}, ${schema.users.searchName}) > ${threshold})
     `)
         .orderBy(sql`relevance_score DESC`)
         .limit(limit)
