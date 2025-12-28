@@ -1,3 +1,8 @@
--- ALTER TABLE "articles" ALTER COLUMN "category" SET DATA TYPE text[];
+ALTER TABLE "articles"
+ADD COLUMN "category_temp" text [];
 UPDATE "articles"
-SET "category" = CAST("category" [1] AS text []);
+SET "category_temp" = ARRAY ["category"]::text []
+WHERE "category" IS NOT NULL;
+ALTER TABLE "articles" DROP COLUMN "category";
+ALTER TABLE "articles"
+    RENAME COLUMN "category_temp" TO "category";

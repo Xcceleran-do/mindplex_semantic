@@ -5,7 +5,12 @@ const urlObj = new URL(databaseUrl);
 
 urlObj.searchParams.delete('ssl');
 urlObj.searchParams.delete('sslmode');
-urlObj.searchParams.set('sslmode', 'no-verify');
+const isLocal = urlObj.hostname === 'localhost' || urlObj.hostname === '127.0.0.1';
+
+if (!isLocal) {
+  urlObj.searchParams.set('sslmode', 'no-verify');
+}
+
 
 const sanitizedLog = urlObj.toString().replace(/:([^:@]+)@/, ':****@');
 console.log(`[Drizzle Config] Using sanitized URL: ${sanitizedLog}`);
