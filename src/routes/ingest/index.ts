@@ -1,18 +1,21 @@
 import { Hono } from 'hono'
 import { Chunk } from '$src/lib/Chunk'
 import { Embedding } from '$src/lib/Embedding'
-import { AppContext, PostData, UserData } from '$src/types'
+import { AppContext } from '$src/types'
 import { toNames } from '$src/utils'
 import { eq } from 'drizzle-orm'
+import { vValidator } from '@hono/valibot-validator';
+import { IngestArticleSchema, IngestUserSchema } from './schema';
 
 const ingest = new Hono<AppContext>()
 
-ingest.post('/articles', async (c) => {
-    const body = await c.req.json()
+ingest.post('/articles', vValidator('json', IngestArticleSchema), async (c) => {
+    const body = c.req.valid('json');
     const db = c.get('db');
     const schema = c.get('schema')
 
-    const pageContents = body.post as PostData
+    const pageContents = body.post
+
     try {
         const tags = toNames(pageContents.tag)
         const category = toNames(pageContents.category)
@@ -21,7 +24,7 @@ ingest.post('/articles', async (c) => {
         const existing = await db
             .select({ id: schema.articles.id })
             .from(schema.articles)
-            .where(eq(schema.articles.externalId, pageContents.ID))
+            .where(eq(schema.articles.externalId, pageContents.id))
             .limit(1)
 
         if (existing.length > 0) {
@@ -47,7 +50,7 @@ ingest.post('/articles', async (c) => {
                 category: category.split(','),
                 teaser: pageContents.brief_overview,
                 publishedAt: new Date(pageContents.post_date),
-                externalId: pageContents.ID,
+                externalId: pageContents.id,
                 embedding: titleEmbedding,
             }).returning()
 
@@ -77,12 +80,10 @@ ingest.post('/articles', async (c) => {
 })
 
 
-ingest.post('/users', async (c) => {
-    const body = await c.req.json()
+ingest.post('/users', vValidator('json', IngestUserSchema), async (c) => {
+    const userData = c.req.valid('json');
     const db = c.get('db');
     const schema = c.get('schema')
-
-    const userData = body as UserData
 
     try {
         const existing = await db
@@ -95,20 +96,14 @@ ingest.post('/users', async (c) => {
             return c.json({ success: false, error: 'User already exists' }, 409)
         }
 
-        const searchName = [userData.firstName, userData.lastName, userData.username, userData.email]
-            .filter(Boolean)
-            .join(' ')
-            .toLowerCase()
-
         await db.insert(schema.users).values({
             externalId: userData.id,
             firstName: userData.firstName,
             lastName: userData.lastName,
             username: userData.username,
-            searchName,
             email: userData.email
         })
-        return c.json({ success: true })
+        return c.json({ success: true, message: 'User created successfully' })
     } catch (error) {
         console.error('User ingest failed:', error)
         return c.json({ success: false, error: 'Internal error' }, 500)

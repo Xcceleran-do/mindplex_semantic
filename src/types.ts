@@ -24,16 +24,16 @@ export interface ContentChunk {
 }
 
 export interface PostData {
-    ID: number,
+    id: number,
     post_date: string,
     post_content: string
     brief_overview: string,
     tag: {
         name: string,
-    } | [],
+    } | [] | undefined,
     category: {
         name: string,
-    } | [],
+    } | [] | undefined,
     post_title: string,
     post_name: string,
     other_authors: [],
