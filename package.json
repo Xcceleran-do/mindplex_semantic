@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "@aws-sdk/client-bedrock-runtime": "^3.943.0",
+    "@hono/swagger-ui": "^0.5.3",
+    "@hono/valibot-validator": "^0.6.1",
     "@types/pg": "^8.15.6",
     "drizzle-kit": "^0.31.7",
     "drizzle-orm": "^0.44.7",

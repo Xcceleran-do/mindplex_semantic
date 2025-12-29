@@ -44,7 +44,9 @@ export const users = pgTable('users', {
     firstName: text('first_name').notNull(),
     lastName: text('last_name').notNull(),
     username: text('username').notNull(),
-    searchName: text('search_name').notNull(),
+    searchName: text('search_name').generatedAlwaysAs(
+        sql`lower(first_name || ' ' || last_name || ' ' || username || ' ' || COALESCE(email, ''))`
+    ),
     email: text('email'),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow()
 }, (table) => [

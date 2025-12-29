@@ -1,14 +1,24 @@
 import { Hono } from 'hono'
-import { sql, eq } from 'drizzle-orm'
-
+import { sql } from 'drizzle-orm'
+import { SearchQuerySchema } from './schema'
 import { AppContext } from '$src/types'
+import { vValidator } from '@hono/valibot-validator';
 
 const users = new Hono<AppContext>()
 
-users.get('/', async (c) => {
-    const limit = Number(c.req.query('limit')) || 10
-    const offset = Number(c.req.query('offset')) || 0
-    const searchQuery = c.req.query('q') || ''
+export const getSearchScoreSql = (query: string) => sql`
+  (
+    word_similarity(${query}, users.search_name)
+    + (CASE WHEN users.first_name ILIKE ${query} THEN 2.0 ELSE 0 END) -- Tier 1: Exact Name (+2.0)
+    + (CASE WHEN users.first_name ILIKE ${query} || '%' THEN 1.2 ELSE 0 END) -- Tier 2: Name Start (+1.2)
+    + (CASE WHEN users.username ILIKE ${query} || '%' THEN 0.8 ELSE 0 END) -- Tier 3: Username Start (+0.8)
+    + (CASE WHEN users.email ILIKE ${query} || '%' THEN 0.5 ELSE 0 END) -- Tier 4: Email Start (+0.5)
+    - (LENGTH(users.first_name) - LENGTH(${query})) * 0.01 -- Tie-breaker: Length penalty (-0.01 per char diff)
+  )
+`;
+
+users.get('/', vValidator('query', SearchQuerySchema), async (c) => {
+    const { limit, offset, q: searchQuery } = c.req.valid('query');
 
     const db = c.get('db')
     const schema = c.get('schema')
@@ -17,50 +27,27 @@ users.get('/', async (c) => {
         return c.json({ users: [] })
     }
 
-    const candidatesSq = db.$with('candidates_sq').as(
-        db.select({
-            id: schema.users.id,
-            indexScore: sql<number>`word_similarity(${searchQuery}, ${schema.users.searchName})`.as('index_score')
-        })
-            .from(schema.users)
-            .where(sql`word_similarity(${searchQuery}, ${schema.users.searchName}) > 0.1`)
-            .orderBy(sql`index_score DESC`)
-            .limit(100)
-    )
+    const threshold = searchQuery.length < 5 ? 0.39 : 0.3;
 
-    const similarUsers = await db.with(candidatesSq).select({
-        id: schema.users.externalId,
+    const users = await db.select({
+        id: schema.users.id,
         firstName: schema.users.firstName,
-        lastName: schema.users.lastName,
         username: schema.users.username,
         email: schema.users.email,
-        score: sql<number>`
-            CASE 
-                WHEN LOWER(${schema.users.firstName}) LIKE LOWER(${searchQuery}) || '%' THEN 1.0
-                WHEN LOWER(${schema.users.lastName}) LIKE LOWER(${searchQuery}) || '%' THEN 1.0
-                WHEN LOWER(${schema.users.username}) LIKE LOWER(${searchQuery}) || '%' THEN 1.0
-                ELSE 
-                    (candidates_sq.index_score * 0.6) +
-                    ((1.0 - LEAST(
-                        levenshtein(LOWER(${schema.users.firstName}), LOWER(${searchQuery})),
-                        levenshtein(LOWER(${schema.users.lastName}), LOWER(${searchQuery})),
-                        levenshtein(LOWER(${schema.users.username}), LOWER(${searchQuery}))
-                    )::float / GREATEST(1, 
-                        LENGTH(${searchQuery}), 
-                        LENGTH(${schema.users.firstName}),
-                        LENGTH(${schema.users.lastName}),
-                        LENGTH(${schema.users.username})
-                    )) * 0.4)
-            END
-        `.as('final_score')
+        score: getSearchScoreSql(searchQuery).as('relevance_score')
     })
-        .from(candidatesSq)
-        .innerJoin(schema.users, eq(schema.users.id, candidatesSq.id))
-        .orderBy(sql`final_score DESC`)
+        .from(schema.users)
+        .where(sql`
+        (${schema.users.firstName} ILIKE ${searchQuery} || '%') 
+        OR (${schema.users.username} ILIKE ${searchQuery} || '%') 
+        OR (${schema.users.email} ILIKE ${searchQuery} || '%')
+        OR (word_similarity(${searchQuery}, ${schema.users.searchName}) > ${threshold})
+    `)
+        .orderBy(sql`relevance_score DESC`)
         .limit(limit)
-        .offset(offset)
+        .offset(offset);
 
-    return c.json({ users: similarUsers, query: searchQuery })
+    return c.json({ users, query: searchQuery, limit, offset, total: users.length })
 })
 
 export default users
