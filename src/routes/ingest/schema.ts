@@ -19,7 +19,7 @@ export const IngestArticleSchema = v.object({
         brief_overview: v.string(),
         author_name: v.string(),
 
-        post_date: v.pipe(v.string(), v.transform((dateString) => new Date(dateString))),
+        post_date: v.string(),
 
         tag: v.optional(ObjectOrEmptyArray, []),
         category: v.optional(ObjectOrEmptyArray, []),
