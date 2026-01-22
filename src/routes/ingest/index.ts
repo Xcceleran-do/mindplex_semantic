@@ -49,6 +49,7 @@ ingest.post('/articles', vValidator('json', IngestArticleSchema), async (c) => {
                 tags: tags.split(','),
                 category: category.split(','),
                 teaser: pageContents.brief_overview,
+                content: pageContents.post_content,
                 publishedAt: new Date(pageContents.post_date),
                 externalId: pageContents.id,
                 embedding: titleEmbedding,

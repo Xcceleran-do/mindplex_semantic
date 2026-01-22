@@ -14,6 +14,7 @@ export const articles = pgTable('articles', {
     title: text('title').notNull(),
     category: text('category').array(),
     tags: text('tags').array(),
+    content: text('content').notNull().default(''),
     publishedAt: timestamp('published_at', { withTimezone: true }).notNull(),
 
     embedding: vector('embedding', { dimensions: 1024 }),
@@ -70,3 +71,5 @@ export const users = pgTable('users', {
 }, (table) => [
     index('users_search_name_trgm_idx').using('gin', sql`${table.searchName} gin_trgm_ops`)
 ])
+
+export const Articles = articles.$inferSelect;
