@@ -32,6 +32,18 @@ variable "DB_PASSWORD" {
   sensitive   = true
 }
 
+variable "bedrock_access_key" {
+  description = "Bedrock Access Key (Must be set in GitHub Secrets as TF_VAR_bedrock_access_key)"
+  type        = string
+  sensitive   = true
+}
+
+variable "bedrock_secret_key" {
+  description = "Bedrock Secret Key (Must be set in GitHub Secrets as TF_VAR_bedrock_secret_key)"
+  type        = string
+  sensitive   = true
+}
+
 
 module "mindplex_semantic" {
   source = "git::https://github.com/Xcceleran-do/mindplex_infra.git//modules/app?ref=main"
@@ -74,6 +86,18 @@ module "mindplex_semantic" {
     {
       name  = "DATABASE_URL"
       value = "postgresql://mindplex_admin:${var.DB_PASSWORD}@${data.terraform_remote_state.foundation.outputs.db_endpoint}:5432/mindplex_semantic"
+    },
+    {
+      name  = "AWS_ACCESS_KEY_ID"
+      value = var.bedrock_access_key
+    },
+    {
+      name  = "AWS_SECRET_ACCESS_KEY"
+      value = var.bedrock_secret_key
+    },
+    {
+      name  = "AWS_REGION"
+      value = "us-east-1"
     },
     {
       name  = "REDIS_URL"
