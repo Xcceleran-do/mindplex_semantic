@@ -1,6 +1,6 @@
 import { Hono } from 'hono'
-import { sql, eq, gt, desc } from 'drizzle-orm'
-import { ALLOWED_UPDATE_FIELDS, ExternalIdParamsSchema, GetArticleQuerySchema, GetChunksQuerySchema, SearchQuerySchema, UpdateArticleSchema } from './schema'
+import { sql, eq, gt, desc, and, ne, asc, lt } from 'drizzle-orm'
+import { ALLOWED_UPDATE_FIELDS, ExternalIdParamsSchema, GetArticleQuerySchema, GetChunksQuerySchema, SearchQuerySchema, UpdateArticleSchema, RelatedArticlesQuerySchema } from './schema'
 
 import type { AppContext } from '$src/types'
 import { vValidator } from '@hono/valibot-validator'
@@ -234,6 +234,62 @@ articles.get('/:id/chunks', vValidator('param', ExternalIdParamsSchema), vValida
         chunks
     });
 });
+articles.get('/:id/related', vValidator('param', ExternalIdParamsSchema), vValidator('query', RelatedArticlesQuerySchema), async (c) => {
+        const db = c.get('db')
+        const { articles: articlesTable } = c.get('schema')
+        const { id: externalId } = c.req.valid('param')
+        const { limit, fields } = c.req.valid('query')
+        const numLimit = Number(limit) || 5;
+
+        const [targetArticle] = await db.select({
+            id: articlesTable.id,
+            embedding: articlesTable.embedding
+        })
+            .from(articlesTable)
+            .where(eq(articlesTable.externalId, externalId))
+            .limit(1)
+
+        if (!targetArticle) {
+            return c.json({ error: 'Article not found' }, 404)
+        }
+
+        if (!targetArticle.embedding) {
+            return c.json({ articles: [] })
+        }
+
+        const THRESHOLD = 0.3;        
+        const distance = sql<number>`${articlesTable.embedding} <=> ${JSON.stringify(targetArticle.embedding)}`
+
+        const selection = buildFieldSelection(
+            articlesTable,
+            fields,
+            FORBIDDEN_COLUMNS,
+            { 
+                id: articlesTable.id,
+                // distance: distance.as('distance') 
+            }
+        )
+
+        const relatedArticles = await db.select(selection)
+            .from(articlesTable)
+            .where(
+                and(
+                    ne(articlesTable.id, targetArticle.id), // Exclude current article
+                    lt(distance, THRESHOLD) // Distance < 0.3
+                )
+            )
+            .orderBy(asc(distance)) // Order by distance
+            .limit(numLimit)
+
+        return c.json({
+            articles: relatedArticles,
+            meta: {
+                limit: numLimit,
+                count: relatedArticles.length
+            }
+        })
+    }
+)
 
 
 export default articles
