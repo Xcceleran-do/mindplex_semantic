@@ -75,4 +75,17 @@ export const users = pgTable('users', {
     index('users_search_name_trgm_idx').using('gin', sql`${table.searchName} gin_trgm_ops`)
 ])
 
+export const summaries = pgTable('summaries', {
+    id: serial('id').primaryKey(),
+    articleId: integer('article_id').references(() => articles.id, { onDelete: 'cascade' }).notNull(),
+    tone: text('tone').notNull(),
+    summary: text('summary').notNull(),
+    embedding: vector('embedding', { dimensions: 1024 }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull().$onUpdate(() => new Date()),
+}, (table) => [
+    index('summaries_article_id_idx').on(table.articleId),
+    unique('summaries_article_id_tone_idx').on(table.articleId, table.tone)
+])
+
 export const Articles = articles.$inferSelect;
