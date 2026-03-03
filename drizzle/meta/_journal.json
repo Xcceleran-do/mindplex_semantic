@@ -64,6 +64,20 @@
       "when": 1769246944932,
       "tag": "0008_bizarre_spitfire",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1772178897874,
+      "tag": "0009_charming_moondragon",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1772522585042,
+      "tag": "0010_black_risque",
+      "breakpoints": true
     }
   ]
 }
