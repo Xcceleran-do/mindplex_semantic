@@ -38,11 +38,3 @@ export const RelatedArticlesQuerySchema = v.object({
 export const GetChunksQuerySchema = v.object({
     fields: createFieldsSchema(articleChunks, new Set([])),
 });
-
-export const GetSummaryQuerySchema = v.object({
-    content_id: v.union([
-        v.number(),
-        v.pipe(v.string(), v.transform(Number))
-    ]),
-    tone: v.string(),
-});
