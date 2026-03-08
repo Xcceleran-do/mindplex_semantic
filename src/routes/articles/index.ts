@@ -8,6 +8,7 @@ import { buildFieldSelection, sanitizeUpdates } from '$src/utils'
 import { FORBIDDEN_COLUMNS } from './schema'
 import { Embedding } from '$src/lib/Embedding'
 import { unionAll } from 'drizzle-orm/pg-core'
+import { adminMiddleware } from '$src/middleware/admin'
 
 const articles = new Hono<AppContext>()
 
@@ -154,7 +155,7 @@ articles.get('/:id', vValidator('param', ExternalIdParamsSchema), vValidator('qu
     return c.json(result)
 })
 
-articles.patch('/:id', vValidator('param', ExternalIdParamsSchema), vValidator('json', UpdateArticleSchema), async (c) => {
+articles.patch('/:id', adminMiddleware, vValidator('param', ExternalIdParamsSchema), vValidator('json', UpdateArticleSchema), async (c) => {
     const { id: externalId } = c.req.valid('param')
     const updates = c.req.valid('json')
 
@@ -182,7 +183,7 @@ articles.patch('/:id', vValidator('param', ExternalIdParamsSchema), vValidator('
     return c.json({ message: 'Article updated successfully', article: updated })
 })
 
-articles.delete('/:id', vValidator('param', ExternalIdParamsSchema), async (c) => {
+articles.delete('/:id', adminMiddleware, vValidator('param', ExternalIdParamsSchema), async (c) => {
     const { id: externalId } = c.req.valid('param')
     const db = c.get('db')
     const { articles } = c.get('schema')

@@ -4,11 +4,11 @@ export const openApiDoc = {
         title: 'Semantic Search API',
         description: `A semantic search API for articles and users with hybrid search capabilities.
 
-**Features:**
-- Hybrid semantic search for articles (vector + full-text)
-- Fuzzy text search for users
-- Field selection for optimized responses
-- RESTful CRUD operations`,
+        **Features:**
+        - Hybrid semantic search for articles (vector + full-text)
+        - Fuzzy text search for users
+        - Field selection for optimized responses
+        - RESTful CRUD operations`,
         version: '1.0.0',
         contact: {
             name: 'API Support',
@@ -172,6 +172,7 @@ Returns articles ranked by relevance score (70% vector, 30% text).
                 tags: ['Articles'],
                 summary: 'Update article',
                 description: 'Update article metadata (does not re-generate embeddings). Only specified fields will be updated.',
+                security: [{ ApiKeyAuth: [] }],
                 operationId: 'updateArticle',
                 parameters: [
                     {
@@ -223,6 +224,7 @@ Returns articles ranked by relevance score (70% vector, 30% text).
                 tags: ['Articles'],
                 summary: 'Delete article',
                 description: 'Permanently delete an article and its chunks',
+                security: [{ ApiKeyAuth: [] }],
                 operationId: 'deleteArticle',
                 parameters: [
                     {
@@ -416,6 +418,7 @@ Searches across first name, last name, username, and email.
                 tags: ['Users'],
                 summary: 'Update user',
                 description: 'Update user information. Only specified fields will be updated.',
+                security: [{ ApiKeyAuth: [] }],
                 operationId: 'updateUser',
                 parameters: [
                     {
@@ -467,6 +470,7 @@ Searches across first name, last name, username, and email.
                 tags: ['Users'],
                 summary: 'Delete user',
                 description: 'Permanently delete a user',
+                security: [{ ApiKeyAuth: [] }],
                 operationId: 'deleteUser',
                 parameters: [
                     {
@@ -504,6 +508,7 @@ Searches across first name, last name, username, and email.
             post: {
                 tags: ['Ingest'],
                 summary: 'Ingest article with processing',
+                security: [{ ApiKeyAuth: [] }],
                 description: `Create a new article with full processing:
 - Generate embeddings for title and teaser
 - Chunk content into searchable segments
@@ -577,6 +582,7 @@ This is a heavy operation and may take several seconds.`,
                 tags: ['Ingest'],
                 summary: 'Ingest user',
                 description: 'Create a new user with search index generation',
+                security: [{ ApiKeyAuth: [] }],
                 operationId: 'ingestUser',
                 requestBody: {
                     required: true,
@@ -625,6 +631,14 @@ This is a heavy operation and may take several seconds.`,
         }
     },
     components: {
+        securitySchemes: {
+            ApiKeyAuth: {
+                type: 'apikey',
+                in: 'header',
+                name: 'X-API-Key',
+                description: 'Admins Api Key for Protection'
+            }
+        },
         schemas: {
             Article: {
                 type: 'object',
