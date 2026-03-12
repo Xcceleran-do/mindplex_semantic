@@ -1,6 +1,9 @@
-import { pgTable, serial, text, integer, timestamp, index, unique } from 'drizzle-orm/pg-core'
+import { pgTable, serial, text, integer, timestamp, index, unique, varchar} from 'drizzle-orm/pg-core'
 import { vector, customType } from 'drizzle-orm/pg-core'
 import { sql } from 'drizzle-orm'
+
+export const availableTones = ['formal', 'casual', 'concise'] as const;
+export type AvailableTone = typeof availableTones[number];
 
 const tsvector = customType<{ data: string }>({
     dataType: () => 'tsvector',
@@ -78,13 +81,14 @@ export const users = pgTable('users', {
 export const summaries = pgTable('summaries', {
     id: serial('id').primaryKey(),
     articleId: integer('article_id').references(() => articles.id, { onDelete: 'cascade' }).notNull(),
-    tone: text('tone').notNull(),
+    tone: varchar("tone", { length: 50 }).$type<AvailableTone>().notNull(),
     summary: text('summary').notNull(),
     embedding: vector('embedding', { dimensions: 1024 }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
     updatedAt: timestamp('updated_at').defaultNow().notNull().$onUpdate(() => new Date()),
 }, (table) => [
     index('summaries_article_id_idx').on(table.articleId),
+    index('summaries_tone_idx').on(table.tone),
     unique('summaries_article_id_tone_idx').on(table.articleId, table.tone)
 ])
 
