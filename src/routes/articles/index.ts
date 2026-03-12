@@ -243,7 +243,9 @@ articles.get('/:id/related', vValidator('param', ExternalIdParamsSchema), vValid
 
         const [targetArticle] = await db.select({
             id: articlesTable.id,
-            embedding: articlesTable.embedding
+            embedding: articlesTable.embedding,
+            title: articlesTable.title,
+            teaser: articlesTable.teaser
         })
             .from(articlesTable)
             .where(eq(articlesTable.externalId, externalId))
@@ -254,7 +256,41 @@ articles.get('/:id/related', vValidator('param', ExternalIdParamsSchema), vValid
         }
 
         if (!targetArticle.embedding) {
-            return c.json({ articles: [] })
+            // Full-Text Search (FTS) using title and teaser
+            const fallbackSearchText = `${targetArticle.title || ''} ${targetArticle.teaser || ''}`.trim()
+            
+            if (!fallbackSearchText) {
+                return c.json({ articles: [], meta: { limit: numLimit, count: 0, fallback: true } })
+            }
+
+            const textScore = sql`ts_rank_cd(${articlesTable.searchVector}, plainto_tsquery('english', ${fallbackSearchText}))`
+
+            const selection = buildFieldSelection(
+                articlesTable,
+                fields,
+                FORBIDDEN_COLUMNS,
+                { id: articlesTable.id }
+            )
+
+            const relatedArticles = await db.select(selection)
+                .from(articlesTable)
+                .where(
+                    and(
+                        ne(articlesTable.id, targetArticle.id),
+                        sql`${articlesTable.searchVector} @@ plainto_tsquery('english', ${fallbackSearchText})`
+                    )
+                )
+                .orderBy(desc(textScore))
+                .limit(numLimit)
+
+            return c.json({
+                articles: relatedArticles,
+                meta: {
+                    limit: numLimit,
+                    count: relatedArticles.length,
+                    strategy: 'fts_fallback'
+                }
+            })
         }
 
         const THRESHOLD = 0.3;        
