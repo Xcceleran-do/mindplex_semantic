@@ -6,8 +6,12 @@ import { toNames } from '$src/utils'
 import { eq } from 'drizzle-orm'
 import { vValidator } from '@hono/valibot-validator';
 import { IngestArticleSchema, IngestUserSchema } from './schema';
+import { adminMiddleware } from '$src/middleware/admin'
+
 
 const ingest = new Hono<AppContext>()
+
+ingest.use('*',adminMiddleware);
 
 ingest.post('/articles', vValidator('json', IngestArticleSchema), async (c) => {
     const body = c.req.valid('json');

@@ -40,10 +40,10 @@ app.use(dbMiddleware)
 app.get('/doc', (c) => c.json(openApiDoc))
 app.get('/ui', Scalar({ url: '/doc' }))
 
-app.route('/v1/ingest', ingest)
-app.route('/v1/articles', articles)
+app.route('/v1/ingest', ingest) // All methods protected by adminMiddleware in ingest router
+app.route('/v1/articles', articles)  // GET public, PATCH/DELETE protected by adminMiddleware in articles router
 app.route('/v1/search', search)
-app.route('/v1/users', usersRoute)
+app.route('/v1/users', usersRoute) // GET public, PATCH/DELETE protected by adminMiddleware in users router
 
 app.get('/', (c) => {
   return c.json({ message: 'This service is not meant to be accessed directly. Use the API endpoints instead.' })
