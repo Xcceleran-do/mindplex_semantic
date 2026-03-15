@@ -1,19 +1,42 @@
-name: Build and Push Docker on Approval
+name: Build and Push Docker
 
 on:
+  push:
+    branches:
+      - "dev/**"
   pull_request_review:
     types: [submitted]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Branch name, tag, or commit SHA to build"
+        required: false
+        type: string
 
 jobs:
   build-and-push:
-    if: github.event.review.state == 'approved'
+    if: |
+      github.event_name == 'push' ||
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'pull_request_review' && github.event.review.state == 'approved')
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout PR head
+        if: github.event_name == 'pull_request_review' && github.event.review.state == 'approved'
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Checkout manual ref
+        if: github.event_name == 'workflow_dispatch' && inputs.ref != ''
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: Checkout pushed branch
+        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.ref == '')
+        uses: actions/checkout@v4
 
       - name: Set image tag
         id: tag
