@@ -110,4 +110,6 @@ ingest.post('/users', vValidator('json', IngestUserSchema), async (c) => {
         return c.json({ success: false, error: 'Internal error' }, 500)
     }
 })
+
+
 export default ingest 

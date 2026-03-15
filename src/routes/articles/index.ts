@@ -1,6 +1,6 @@
 import { Hono } from 'hono'
-import { sql, eq, gt, desc } from 'drizzle-orm'
-import { ALLOWED_UPDATE_FIELDS, ExternalIdParamsSchema, GetArticleQuerySchema, GetChunksQuerySchema, SearchQuerySchema, UpdateArticleSchema } from './schema'
+import { sql, eq, gt, desc, and, ne, asc, lt } from 'drizzle-orm'
+import { ALLOWED_UPDATE_FIELDS, ExternalIdParamsSchema, GetArticleQuerySchema, GetChunksQuerySchema, SearchQuerySchema, UpdateArticleSchema, RelatedArticlesQuerySchema } from './schema'
 
 import type { AppContext } from '$src/types'
 import { vValidator } from '@hono/valibot-validator'
@@ -234,6 +234,98 @@ articles.get('/:id/chunks', vValidator('param', ExternalIdParamsSchema), vValida
         chunks
     });
 });
+articles.get('/:id/related', vValidator('param', ExternalIdParamsSchema), vValidator('query', RelatedArticlesQuerySchema), async (c) => {
+        const db = c.get('db')
+        const { articles: articlesTable } = c.get('schema')
+        const { id: externalId } = c.req.valid('param')
+        const { limit, fields } = c.req.valid('query')
+        const numLimit = Number(limit) || 5;
+
+        const [targetArticle] = await db.select({
+            id: articlesTable.id,
+            embedding: articlesTable.embedding,
+            title: articlesTable.title,
+            teaser: articlesTable.teaser
+        })
+            .from(articlesTable)
+            .where(eq(articlesTable.externalId, externalId))
+            .limit(1)
+
+        if (!targetArticle) {
+            return c.json({ error: 'Article not found' }, 404)
+        }
+
+        if (!targetArticle.embedding) {
+            // Full-Text Search (FTS) using title and teaser
+            const fallbackSearchText = `${targetArticle.title || ''} ${targetArticle.teaser || ''}`.trim()
+            
+            if (!fallbackSearchText) {
+                return c.json({ articles: [], meta: { limit: numLimit, count: 0, fallback: true } })
+            }
+
+            const textScore = sql`ts_rank_cd(${articlesTable.searchVector}, plainto_tsquery('english', ${fallbackSearchText}))`
+
+            const selection = buildFieldSelection(
+                articlesTable,
+                fields,
+                FORBIDDEN_COLUMNS,
+                { id: articlesTable.id }
+            )
+
+            const relatedArticles = await db.select(selection)
+                .from(articlesTable)
+                .where(
+                    and(
+                        ne(articlesTable.id, targetArticle.id),
+                        sql`${articlesTable.searchVector} @@ plainto_tsquery('english', ${fallbackSearchText})`
+                    )
+                )
+                .orderBy(desc(textScore))
+                .limit(numLimit)
+
+            return c.json({
+                articles: relatedArticles,
+                meta: {
+                    limit: numLimit,
+                    count: relatedArticles.length,
+                    strategy: 'fts_fallback'
+                }
+            })
+        }
+
+        const THRESHOLD = 0.3;        
+        const distance = sql<number>`${articlesTable.embedding} <=> ${JSON.stringify(targetArticle.embedding)}`
+
+        const selection = buildFieldSelection(
+            articlesTable,
+            fields,
+            FORBIDDEN_COLUMNS,
+            { 
+                id: articlesTable.id,
+                // distance: distance.as('distance') 
+            }
+        )
+
+        const relatedArticles = await db.select(selection)
+            .from(articlesTable)
+            .where(
+                and(
+                    ne(articlesTable.id, targetArticle.id), // Exclude current article
+                    lt(distance, THRESHOLD) // Distance < 0.3
+                )
+            )
+            .orderBy(asc(distance)) // Order by distance
+            .limit(numLimit)
+
+        return c.json({
+            articles: relatedArticles,
+            meta: {
+                limit: numLimit,
+                count: relatedArticles.length
+            }
+        })
+    }
+)
 
 
 export default articles
