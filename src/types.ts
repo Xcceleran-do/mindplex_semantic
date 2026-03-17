@@ -1,10 +1,29 @@
 import { NodePgDatabase } from "drizzle-orm/node-postgres";
 import * as schema from "./db/schema";
 
+// Access role used by guard middleware
+export const ACCESS = {
+    Collaborator: "collaborator",
+    Editor: 'editor',
+    Admin: 'admin',
+} as const
+
+export type Access = typeof ACCESS[keyof typeof ACCESS]
+
+// Extracting Information from JWT
+export type AuthUser = {
+    sub?: string
+    email?: string
+    role: Access
+    raw: Record<string, unknown>
+}
+
 export type AppContext = {
     Variables: {
         db: NodePgDatabase<typeof schema>
         schema: typeof schema
+        authUser?: AuthUser  //from JWT
+        authToken?: string   //raw bearer token
     };
 };
 

@@ -4,7 +4,7 @@ import { ALLOWED_USER_UPDATE_FIELDS, ExternalIdParamsSchema, FORBIDDEN_USER_COLU
 import { AppContext } from '$src/types'
 import { vValidator } from '@hono/valibot-validator';
 import { buildFieldSelection, sanitizeUpdates } from '$src/utils';
-import { adminMiddleware } from '$src/middleware/admin';
+import { guard } from '$src/middleware/guard'
 
 const users = new Hono<AppContext>()
 
@@ -92,7 +92,7 @@ users.get('/:id', vValidator('param', ExternalIdParamsSchema), vValidator('query
     return c.json(result)
 })
 
-users.patch('/:id', adminMiddleware, vValidator('param', ExternalIdParamsSchema), vValidator('json', UpdateUserSchema), async (c) => {
+users.patch('/:id', guard(), vValidator('param', ExternalIdParamsSchema), vValidator('json', UpdateUserSchema), async (c) => {
     const { id: externalId } = c.req.valid('param')
     const updates = c.req.valid('json')
 
@@ -121,7 +121,7 @@ users.patch('/:id', adminMiddleware, vValidator('param', ExternalIdParamsSchema)
     return c.json({ message: 'User updated successfully', user: updated })
 })
 
-users.delete('/:id', adminMiddleware, vValidator('param', ExternalIdParamsSchema), async (c) => {
+users.delete('/:id', guard(), vValidator('param', ExternalIdParamsSchema), async (c) => {
     const { id: externalId } = c.req.valid('param')
     const db = c.get('db')
     const { users } = c.get('schema')
