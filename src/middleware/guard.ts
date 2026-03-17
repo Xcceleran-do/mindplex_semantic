@@ -3,7 +3,7 @@ import type { AppContext, Access, AuthUser } from "$src/types"
 import { ACCESS } from "$src/types"
 import { createHmac, createPublicKey, createVerify, timingSafeEqual } from "node:crypto"
 
-// role levels
+// role order
 const ACCESS_RANK: Record<Access, number> = {
     [ACCESS.Collaborator]: 1,
     [ACCESS.Editor]: 2,
@@ -12,7 +12,7 @@ const ACCESS_RANK: Record<Access, number> = {
 
 type GuardMode = "optional" | Access
 
-// jwt payload shape
+// jwt payload
 type JwtPayload = {
     sub?: string
     email?: string
@@ -25,8 +25,7 @@ type JwtPayload = {
     [key: string]: unknown
 }
 
-// get bearer token from header
-// Authorization: Bearer token_here
+// read bearer token from Authorization header
 function getBearerToken(authHeader?: string): string | null {
     if (!authHeader) return null
 
@@ -38,19 +37,19 @@ function getBearerToken(authHeader?: string): string | null {
     return token
 }
 
-// jwt uses base64url so convert it
+// convert base64url to normal base64
 function base64UrlToBase64(value: string) {
     return value.replace(/-/g, '+').replace(/_/g, '/')
 }
 
-// decode base64url
+// decode base64url value
 function decodeBase64Url(value: string) {
     const base64 = base64UrlToBase64(value)
     const pad = '='.repeat((4 - (base64.length % 4)) % 4)
     return Buffer.from(base64 + pad, 'base64')
 }
 
-// encode to base64url
+// encode buffer back to base64url
 function encodeBase64Url(value: Buffer) {
     return value
         .toString('base64')
@@ -59,7 +58,7 @@ function encodeBase64Url(value: Buffer) {
         .replace(/=+$/g, '')
 }
 
-// verify hs256 token with secret
+// verify hs256 token
 function verifyHs256(token: string, secret: string) {
     const parts = token.split('.')
     if (parts.length !== 3) throw new Error("Malformed JWT")
@@ -79,7 +78,7 @@ function verifyHs256(token: string, secret: string) {
     return timingSafeEqual(expectedBuf, actualBuf)
 }
 
-// verify rs256 token with public key
+// verify rs256 token
 function verifyRs256(token: string, publicKey: string) {
     const parts = token.split('.')
     if (parts.length !== 3) throw new Error("Malformed JWT")
@@ -95,7 +94,7 @@ function verifyRs256(token: string, publicKey: string) {
         .verify(key, signature)
 }
 
-// verify full jwt
+// verify jwt and return payload
 function verifyJwt(token: string) {
     const parts = token.split(".")
     if (parts.length !== 3) throw new Error("Malformed JWT")
@@ -110,8 +109,8 @@ function verifyJwt(token: string) {
         decodeBase64Url(payloadPart).toString("utf8")
     ) as JwtPayload
 
-    // use env algorithm first or token header
-    const algorithm = c.env?.JWT_ALGORITHM || process.env.JWT_ALGORITHM || header.alg || "HS256"
+    // take algorithm from env first, otherwise from token header
+    const algorithm = process.env.JWT_ALGORITHM || header.alg || "HS256"
 
     // verify signature
     if (algorithm === "HS256") {
@@ -132,17 +131,17 @@ function verifyJwt(token: string) {
 
     const now = Math.floor(Date.now() / 1000)
 
-    // check exp
+    // check expiration
     if (payload.exp && now >= payload.exp) {
         throw new Error("Token expired")
     }
 
-    // check issuer
+    // check issuer if set
     if (process.env.JWT_ISSUER && payload.iss !== process.env.JWT_ISSUER) {
         throw new Error("Invalid issuer")
     }
 
-    // check audience
+    // check audience if set
     if (process.env.JWT_AUDIENCE) {
         const audience = payload.aud
         const expectedAudience = process.env.JWT_AUDIENCE
@@ -162,7 +161,7 @@ function verifyJwt(token: string) {
     return payload
 }
 
-// make sure role is valid
+// turn role into one of our allowed values
 function normalizeRole(value: unknown): Access {
     const role = String(value || "").toLowerCase()
 
@@ -173,17 +172,16 @@ function normalizeRole(value: unknown): Access {
     throw new Error("Missing or invalid role claim")
 }
 
-// compare user role with needed role
+// check if user has enough access
 function canAccess(userRole: Access, required: Access) {
     return ACCESS_RANK[userRole] >= ACCESS_RANK[required]
 }
 
-// main middleware
-// guard() admin by default
-// guard("optional") token optional
-// guard("editor") editor and above
-// guard("admin") admin only
-// guard("collaborator") collaborator and above
+// guard() -> admin by default
+// guard("optional") -> no token is also okay
+// guard("editor") -> editor and admin
+// guard("admin") -> admin only
+// guard("collaborator") -> collaborator and above
 export function guard(mode: GuardMode = ACCESS.Admin) {
     return createMiddleware<AppContext>(async (c, next) => {
         const authHeader = c.req.header("Authorization")
@@ -191,7 +189,6 @@ export function guard(mode: GuardMode = ACCESS.Admin) {
 
         // no token
         if (!token) {
-            // optional means continue without failing
             if (mode === "optional") {
                 await next()
                 return
@@ -201,10 +198,10 @@ export function guard(mode: GuardMode = ACCESS.Admin) {
         }
 
         try {
-            // verify jwt
+            // verify token
             const payload = verifyJwt(token)
 
-            // get role from role or access
+            // read role from token
             const role = normalizeRole(payload.role ?? payload.access)
 
             const authUser: AuthUser = {
@@ -214,11 +211,11 @@ export function guard(mode: GuardMode = ACCESS.Admin) {
                 raw: payload
             }
 
-            // save auth data in context
+            // save auth info in context
             c.set("authUser", authUser)
             c.set("authToken", token)
 
-            // if not optional then check role
+            // check role if route is protected
             if (mode !== "optional") {
                 if (!canAccess(role, mode)) {
                     return c.json({ error: "Forbidden" }, 403)
