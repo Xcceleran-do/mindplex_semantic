@@ -22,8 +22,10 @@ retrieval.post(
     const k = body.k ?? 3;
     const articleId = body.filters?.article_id;
 
+    if (!userQuery) return c.json({})
+
     const embeddingService = new Embedding();
-    const queryEmbedding = await embeddingService.getEmbeddings(body.user_query);
+    const queryEmbedding = await embeddingService.getEmbeddings(userQuery);
    
 
     const embedding =
