@@ -6,7 +6,8 @@
     "db:generate": "bun run drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "bunx drizzle-kit studio",
-    "db:setup": "bun run src/scripts/bootstrap.ts"
+    "db:setup": "bun run src/scripts/bootstrap.ts",
+    "db:seed": "bun run src/scripts/seedArticles.ts"
   },
   "dependencies": {
     "@aws-sdk/client-bedrock-runtime": "^3.943.0",
