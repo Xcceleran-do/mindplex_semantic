@@ -15,6 +15,8 @@ import { openApiDoc } from './openapi'
 import { AppContext } from '$src/types'
 import { AppError } from '$src/lib/errors'
 import articleSummaries, { summaryCollection } from '$src/routes/summary'
+import retrieval from '$src/routes/chat'
+
 
 const app = new Hono<AppContext>()
 const urlObj = new URL(process.env.DATABASE_URL || '');
@@ -47,6 +49,7 @@ app.route('/v1/articles/:id/summaries', articleSummaries)
 app.route('/v1/summaries', summaryCollection)
 app.route('/v1/search', search)
 app.route('/v1/users', usersRoute)
+app.route('/v1/retrieve',retrieval)
 
 app.get('/', (c) => {
   return c.json({ message: 'This service is not meant to be accessed directly. Use the API endpoints instead.' })
