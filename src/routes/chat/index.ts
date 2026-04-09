@@ -1,20 +1,15 @@
 import { Hono } from 'hono'
-import {RetrieveChunksSchema } from './schema'
+import { RetrieveChunksSchema, retrieveChunksDocs } from './schema'
 import { Embedding } from '$src/lib/Embedding'
-import { sql, eq, and, desc, isNotNull } from 'drizzle-orm';
-
+import { sql, eq, and, desc, isNotNull } from 'drizzle-orm'
 import type { AppContext } from '$src/types'
 import { vValidator } from '@hono/valibot-validator'
-
+import { describeRoute } from 'hono-openapi'
 
 const retrieval = new Hono<AppContext>()
 
-retrieval.post(
-  '/chunks',
-  vValidator('json', RetrieveChunksSchema),
-  async (c) => {
-
-   const db = c.get('db');
+retrieval.post('/chunks', describeRoute(retrieveChunksDocs), vValidator('json', RetrieveChunksSchema), async (c) => {
+    const db = c.get('db');
     const { articles, articleChunks } = c.get('schema');
     const body = c.req.valid('json');
 
@@ -26,52 +21,34 @@ retrieval.post(
 
     const embeddingService = new Embedding();
     const queryEmbedding = await embeddingService.getEmbeddings(userQuery);
-   
 
-    const embedding =
-    Array.isArray(queryEmbedding[0]) ? queryEmbedding[0] : queryEmbedding;
-
+    const embedding = Array.isArray(queryEmbedding[0]) ? queryEmbedding[0] : queryEmbedding;
     const vectorLiteral = `[${embedding.join(',')}]`;
 
-    const score = sql<number>`
-
-    1 - (${articleChunks.embedding} <=> ${vectorLiteral}::vector)
-  `.as('score');
-
-
+    const score = sql<number>`1 - (${articleChunks.embedding} <=> ${vectorLiteral}::vector)`.as('score');
     const conditions = [isNotNull(articleChunks.embedding)];
 
-    if (articleId) {
-      conditions.push(eq(articles.externalId, articleId));
-    }
+    if (articleId) conditions.push(eq(articles.externalId, articleId));
 
     const rows = await db
-      .select({
-        chunkId:articleChunks.articleId,
-        text: articleChunks.rawContent,
-        score,
-        url: articles.slug,
-        slug: articles.slug,
-       
-      })
-      .from(articleChunks)
-      .innerJoin(articles, eq(articleChunks.articleId, articles.id))
-      .where(and(...conditions))
-      .orderBy(desc(score))
-      .limit(k);
+        .select({
+            chunkId: articleChunks.articleId,
+            text: articleChunks.rawContent,
+            score,
+            slug: articles.slug,
+        })
+        .from(articleChunks)
+        .innerJoin(articles, eq(articleChunks.articleId, articles.id))
+        .where(and(...conditions))
+        .orderBy(desc(score))
+        .limit(k);
 
-    const response = rows.map((row) => ({
-      chunk_id: String(row.chunkId),
-      text: row.text,
-      score: Number(row.score),
-      metadata: {
-        slug: row.slug,
-      },
-    }));
-
-    return c.json(response, 200);
-   
-  }
-)
+    return c.json(rows.map((row) => ({
+        chunk_id: String(row.chunkId),
+        text: row.text,
+        score: Number(row.score),
+        metadata: { slug: row.slug },
+    })), 200);
+})
 
 export default retrieval
