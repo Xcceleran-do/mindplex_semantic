@@ -19,7 +19,7 @@ apply_requirements:
       approved:
         enabled: true
         any_of: []
-        any_of_count: 1
+        any_of_count: 0
       merge_conflicts:
         enabled: true
       status_checks:
