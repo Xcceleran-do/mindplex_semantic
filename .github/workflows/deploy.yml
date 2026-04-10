@@ -1,11 +1,6 @@
 name: Build and Push Docker
-
 on:
-  push:
-    branches-ignore:
-      - "main"
-  pull_request_review:
-    types: [submitted]
+  pull_request:
   workflow_dispatch:
     inputs:
       ref:
@@ -15,29 +10,15 @@ on:
 
 jobs:
   build-and-push:
-    if: |
-      github.event_name == 'push' ||
-      github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'pull_request_review' && github.event.review.state == 'approved')
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout PR head
-        if: github.event_name == 'pull_request_review' && github.event.review.state == 'approved'
+      
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
-
-      - name: Checkout manual ref
-        if: github.event_name == 'workflow_dispatch' && inputs.ref != ''
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.ref }}
-
-      - name: Checkout pushed branch
-        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.ref == '')
-        uses: actions/checkout@v4
-
+          ref: ${{ inputs.ref || '' }}
+  
       - name: Set image tag
         id: tag
         run: echo "image_tag=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
