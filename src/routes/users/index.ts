@@ -16,19 +16,9 @@ import { AppContext } from '$src/types'
 import { vValidator } from '@hono/valibot-validator'
 import { describeRoute } from 'hono-openapi'
 import { buildFieldSelection, sanitizeUpdates } from '$src/utils'
+import { searchQuerySql } from '$src/lib/sql/SearchQuerySql'
 
 const users = new Hono<AppContext>()
-
-export const getSearchScoreSql = (query: string) => sql`
-  (
-    word_similarity(${query}, users.search_name)
-    + (CASE WHEN users.first_name ILIKE ${query} THEN 2.0 ELSE 0 END)
-    + (CASE WHEN users.first_name ILIKE ${query} || '%' THEN 1.2 ELSE 0 END)
-    + (CASE WHEN users.username ILIKE ${query} || '%' THEN 0.8 ELSE 0 END)
-    + (CASE WHEN users.email ILIKE ${query} || '%' THEN 0.5 ELSE 0 END)
-    - (LENGTH(users.first_name) - LENGTH(${query})) * 0.01
-  )
-`;
 
 users.get('/search', describeRoute(searchUsersDocs), vValidator('query', SearchQuerySchema), async (c) => {
     const { limit, page, q: searchQuery, fields } = c.req.valid('query');
@@ -38,21 +28,18 @@ users.get('/search', describeRoute(searchUsersDocs), vValidator('query', SearchQ
 
     if (!searchQuery) return c.json({ users: [] })
 
+    const relevanceScore = searchQuerySql.userSearchScore(searchQuery, users).as('relevance_score')
+
     const selection = buildFieldSelection(users, fields, FORBIDDEN_USER_COLUMNS, {
         id: users.id,
-        score: getSearchScoreSql(searchQuery).as('relevance_score')
+        score: relevanceScore
     })
 
     const threshold = searchQuery.length < 5 ? 0.39 : 0.3;
 
     const result = await db.select(selection)
         .from(users)
-        .where(sql`
-            (${users.firstName} ILIKE ${searchQuery} || '%')
-            OR (${users.username} ILIKE ${searchQuery} || '%')
-            OR (${users.email} ILIKE ${searchQuery} || '%')
-            OR (word_similarity(${searchQuery}, ${users.searchName}) > ${threshold})
-        `)
+        .where(searchQuerySql.userSearchFilter(searchQuery, users, threshold))
         .orderBy(sql`relevance_score DESC`)
         .limit(limit)
         .offset(offset);

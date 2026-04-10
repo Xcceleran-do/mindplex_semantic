@@ -1,4 +1,5 @@
 import { Client } from 'pg';
+import { PostgresAdminSql } from '$src/lib/sql/PostgresAdminSql'
 
 async function bootstrap() {
     const targetUrl = process.env.DATABASE_URL;
@@ -32,7 +33,7 @@ async function bootstrap() {
 
         if (checkRes.rowCount === 0) {
             console.log(`Database "${targetDbName}" missing. Creating it...`);
-            await maintenanceClient.query(`CREATE DATABASE "${targetDbName}"`);
+            await maintenanceClient.query(PostgresAdminSql.createDatabase(targetDbName));
             console.log(`Database "${targetDbName}" created successfully!`);
         } else {
             console.log(`Database "${targetDbName}" already exists.`);

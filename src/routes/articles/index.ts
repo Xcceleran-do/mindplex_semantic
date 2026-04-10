@@ -23,21 +23,10 @@ import { vValidator } from '@hono/valibot-validator'
 import { describeRoute } from 'hono-openapi'
 import { buildFieldSelection, sanitizeUpdates } from '$src/utils'
 import { Embedding } from '$src/lib/Embedding'
+import { searchQuerySql } from '$src/lib/sql/SearchQuerySql'
 import { unionAll } from 'drizzle-orm/pg-core'
 
 const articles = new Hono<AppContext>()
-
-export const getHybridScoreSql = (
-    embeddingColumn: any,
-    searchVectorColumn: any,
-    queryEmbedding: number[],
-    textQuery: string
-) => {
-    const vectorScore = sql`1 - (${embeddingColumn} <=> ${JSON.stringify(queryEmbedding)})`
-    const textScore = sql`ts_rank_cd(${searchVectorColumn}, websearch_to_tsquery('english', ${textQuery}))`
-    const normalizedTextScore = sql`(${textScore} / (${textScore} + 0.1))`
-    return sql`(${vectorScore} * 0.5) + (${normalizedTextScore} * 0.5)`
-}
 
 
 articles.get('/search', describeRoute(searchArticlesDocs), vValidator('query', SearchQuerySchema), async (c) => {
@@ -51,15 +40,14 @@ articles.get('/search', describeRoute(searchArticlesDocs), vValidator('query', S
     const embeddingService = new Embedding()
     const queryEmbedding = await embeddingService.getEmbeddings(searchQuery)
 
-    const articleScore = getHybridScoreSql(articles.embedding, articles.searchVector, queryEmbedding, searchQuery)
-    const chunkScore = getHybridScoreSql(articleChunks.embedding, articleChunks.searchVector, queryEmbedding, searchQuery)
-    const THRESHOLD = 0.45;
+    const articleScore = searchQuerySql.hybridScore(articles.embedding, articles.searchVector, queryEmbedding, searchQuery)
+    const chunkScore = searchQuerySql.hybridScore(articleChunks.embedding, articleChunks.searchVector, queryEmbedding, searchQuery)
 
     const articleMatches = db.select({ articleId: articles.id, score: articleScore.as('score') })
-        .from(articles).where(gt(articleScore, THRESHOLD))
+        .from(articles).where(gt(articleScore, searchQuerySql.articleThreshold))
 
     const chunkMatches = db.select({ articleId: articleChunks.articleId, score: chunkScore.as('score') })
-        .from(articleChunks).where(gt(chunkScore, 0.25))
+        .from(articleChunks).where(gt(chunkScore, searchQuerySql.chunkThreshold))
 
     const allMatches = unionAll(articleMatches, chunkMatches).as('all_matches')
 
@@ -179,14 +167,14 @@ articles.get('/:id/related', describeRoute(getRelatedArticlesDocs), vValidator('
         const fallbackSearchText = `${targetArticle.title || ''} ${targetArticle.teaser || ''}`.trim()
         if (!fallbackSearchText) return c.json({ articles: [], meta: { limit: numLimit, count: 0, fallback: true } })
 
-        const textScore = sql`ts_rank_cd(${articlesTable.searchVector}, plainto_tsquery('english', ${fallbackSearchText}))`
+        const textScore = searchQuerySql.plainTextRank(articlesTable.searchVector, fallbackSearchText)
         const selection = buildFieldSelection(articlesTable, fields, FORBIDDEN_COLUMNS, { id: articlesTable.id })
 
         const relatedArticles = await db.select(selection)
             .from(articlesTable)
             .where(and(
                 ne(articlesTable.id, targetArticle.id),
-                sql`${articlesTable.searchVector} @@ plainto_tsquery('english', ${fallbackSearchText})`
+                searchQuerySql.plainTextMatch(articlesTable.searchVector, fallbackSearchText)
             ))
             .orderBy(desc(textScore))
             .limit(numLimit)
@@ -195,7 +183,7 @@ articles.get('/:id/related', describeRoute(getRelatedArticlesDocs), vValidator('
     }
 
     const THRESHOLD = 0.3;
-    const distance = sql<number>`${articlesTable.embedding} <=> ${JSON.stringify(targetArticle.embedding)}`
+    const distance = searchQuerySql.vectorDistance(articlesTable.embedding, targetArticle.embedding)
     const selection = buildFieldSelection(articlesTable, fields, FORBIDDEN_COLUMNS, { id: articlesTable.id })
 
     const relatedArticles = await db.select(selection)
@@ -204,7 +192,7 @@ articles.get('/:id/related', describeRoute(getRelatedArticlesDocs), vValidator('
         .orderBy(asc(distance))
         .limit(numLimit)
 
-    return c.json({ articles: relatedArticles, meta: { limit: numLimit, count: relatedArticles.length } })
+    return c.json({ articles: relatedArticles, meta: { limit: numLimit, count: relatedArticles.length, strategy: 'vector' } })
 })
 
 

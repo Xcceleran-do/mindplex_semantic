@@ -1,6 +1,7 @@
 import { Hono } from 'hono'
 import { createMiddleware } from "hono/factory";
 import { drizzle } from 'drizzle-orm/node-postgres'
+import { sql } from 'drizzle-orm'
 import { Pool } from "pg";
 import { Scalar } from '@scalar/hono-api-reference'
 import { openAPIRouteHandler } from 'hono-openapi'
@@ -95,9 +96,9 @@ app.get('/', (c) => {
 app.get('/health', async (c) => {
   try {
     const db = c.get('db');
-    const result = await db.execute('select 1');
+    const result = await db.execute(sql`select 1 as healthy`);
 
-    if (result && result.rows[0]['?column?'] === 1) {
+    if (result && result.rows[0].healthy === 1) {
       return c.json({ status: "ok" })
     } else {
       c.status(500)

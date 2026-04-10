@@ -1,10 +1,11 @@
 import { Hono } from 'hono'
 import { RetrieveChunksSchema, retrieveChunksDocs } from './schema'
 import { Embedding } from '$src/lib/Embedding'
-import { sql, eq, and, desc, isNotNull } from 'drizzle-orm'
+import { eq, and, desc, isNotNull } from 'drizzle-orm'
 import type { AppContext } from '$src/types'
 import { vValidator } from '@hono/valibot-validator'
 import { describeRoute } from 'hono-openapi'
+import { searchQuerySql } from '$src/lib/sql/SearchQuerySql'
 
 const retrieval = new Hono<AppContext>()
 
@@ -23,9 +24,7 @@ retrieval.post('/chunks', describeRoute(retrieveChunksDocs), vValidator('json', 
     const queryEmbedding = await embeddingService.getEmbeddings(userQuery);
 
     const embedding = Array.isArray(queryEmbedding[0]) ? queryEmbedding[0] : queryEmbedding;
-    const vectorLiteral = `[${embedding.join(',')}]`;
-
-    const score = sql<number>`1 - (${articleChunks.embedding} <=> ${vectorLiteral}::vector)`.as('score');
+    const score = searchQuerySql.similarityScore(articleChunks.embedding, embedding).as('score');
     const conditions = [isNotNull(articleChunks.embedding)];
 
     if (articleId) conditions.push(eq(articles.externalId, articleId));
