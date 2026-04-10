@@ -14,12 +14,13 @@ async function bootstrap() {
     urlObj.pathname = '/mindplex_shared';
 
     const maintenanceUrl = urlObj.toString();
+    const useSSL = process.env.DB_REQUIRE_SSL === 'true' ? { rejectUnauthorized: false } : false;
 
     console.log(`Connecting to administrative DB to check for "${targetDbName}"...`);
 
     const maintenanceClient = new Client({
         connectionString: maintenanceUrl,
-        ssl: { rejectUnauthorized: false }
+        ssl: useSSL
     });
 
     try {
@@ -52,7 +53,7 @@ async function bootstrap() {
 
     const targetClient = new Client({
         connectionString: targetUrlObj.toString(),
-        ssl: { rejectUnauthorized: false }
+        ssl: useSSL
     });
 
     try {
