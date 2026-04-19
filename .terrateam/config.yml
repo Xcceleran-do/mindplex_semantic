@@ -5,8 +5,8 @@ automerge:
   require_explicit_apply: true
 
 engine:
-  name: opentofu
-  version: 1.11.6
+  name: terraform
+  version: 1.9.8
 
 dirs:
   "terraform/dev":
