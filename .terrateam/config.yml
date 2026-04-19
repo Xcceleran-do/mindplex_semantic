@@ -6,7 +6,7 @@ automerge:
 
 engine:
   name: terraform
-  version: 1.9.8
+  version: 1.8.3
 
 dirs:
   "terraform/dev":
