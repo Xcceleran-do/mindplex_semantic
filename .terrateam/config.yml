@@ -4,10 +4,6 @@ automerge:
   enabled: true
   require_explicit_apply: true
 
-engine:
-  name: terraform
-  version: 1.9.8
-
 dirs:
   "terraform/dev":
     tags: ["dev"]
@@ -23,12 +19,11 @@ apply_requirements:
       approved:
         enabled: true
         any_of: []
-        any_of_count: 1
+        any_of_count: 0
       merge_conflicts:
         enabled: true
       status_checks:
         enabled: true
-
 
 hooks:
   all:
@@ -36,14 +31,8 @@ hooks:
       - type: env
         name: TF_VAR_image_tag
         cmd: ["sh", "-c", "git rev-parse HEAD"]
+    post:
       - type: run
-        cmd: ["$TERRATEAM_ROOT/terraform/scripts/pre_debug.sh"]
-    # post:
-    #   - type: run
-    #     run_on: failure
-    #     cmd:
-    #       [
-    #         "$TERRATEAM_ROOT/terraform/scripts/fetch_logs.sh",
-    #         "mindplex-dev-cluster",
-    #         "mindplex-semantic-dev-service"
-    #       ]
+        run_on: failure
+        cmd: ["$TERRATEAM_ROOT/terraform/scripts/fetch_logs.sh", "mindplex-dev-cluster", "mindplex-semantic-dev", "/ecs/mindplex-semantic-dev"]
+        
