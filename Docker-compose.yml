@@ -4,7 +4,7 @@ services:
     environment:
       POSTGRES_USER: mindplex
       POSTGRES_PASSWORD: mindplex
-      POSTGRES_DB: semantic
+      POSTGRES_DB: mindplex_shared
     ports:
       - "5432:5432"
     volumes:

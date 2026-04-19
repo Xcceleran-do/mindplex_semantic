@@ -106,6 +106,10 @@ module "mindplex_semantic" {
     {
       name  = "REDIS_TLS"
       value = "true"
+    },
+    {
+      name  = "DB_REQUIRE_SSL"
+      value = "true"
     }
   ]
 }

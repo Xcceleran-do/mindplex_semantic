@@ -3,9 +3,9 @@ import { defineConfig } from 'drizzle-kit';
 const databaseUrl = process.env.DATABASE_URL!;
 const urlObj = new URL(databaseUrl);
 
-const isLocal = urlObj.hostname === 'localhost' || urlObj.hostname === '127.0.0.1';
+const requiresSsl = process.env.DB_REQUIRE_SSL === 'true';
 
-if (!isLocal) {
+if (requiresSsl) {
   urlObj.searchParams.set('sslmode', 'no-verify');
 }
 
