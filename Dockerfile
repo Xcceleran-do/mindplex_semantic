@@ -14,4 +14,11 @@ RUN bun install --frozen-lockfile --production
 COPY . .
 USER bun
 
-CMD ["/bin/sh", "-c", "bun run db:setup && bun run db:migrate && bun src/index.ts"]
+
+CMD ["/bin/sh", "-c", "\
+    echo '[startup] db:setup'; \
+    bun run db:setup && \
+    echo '[startup] db:migrate'; \
+    bun run db:migrate && \
+    echo '[startup] api start'; \
+    bun src/index.ts"]
