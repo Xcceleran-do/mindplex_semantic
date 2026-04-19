@@ -3,6 +3,7 @@ import { PostgresAdminSql } from '$src/lib/sql/PostgresAdminSql'
 
 async function bootstrap() {
     const targetUrl = process.env.DATABASE_URL;
+    const adminDbName = process.env.DB_ADMIN_DATABASE || 'postgres';
 
     if (!targetUrl) {
         console.error("DATABASE_URL is missing!");
@@ -12,12 +13,12 @@ async function bootstrap() {
     const urlObj = new URL(targetUrl);
     const targetDbName = urlObj.pathname.split('/')[1];
 
-    urlObj.pathname = '/mindplex_shared';
+    urlObj.pathname = `/${adminDbName}`;
 
     const maintenanceUrl = urlObj.toString();
     const useSSL = process.env.DB_REQUIRE_SSL === 'true' ? { rejectUnauthorized: false } : false;
 
-    console.log(`Connecting to administrative DB to check for "${targetDbName}"...`);
+    console.log(`Connecting to administrative DB "${adminDbName}" to check for "${targetDbName}"...`);
 
     const maintenanceClient = new Client({
         connectionString: maintenanceUrl,

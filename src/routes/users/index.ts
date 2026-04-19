@@ -17,6 +17,7 @@ import { vValidator } from '@hono/valibot-validator'
 import { describeRoute } from 'hono-openapi'
 import { buildFieldSelection, sanitizeUpdates } from '$src/utils'
 import { searchQuerySql } from '$src/lib/sql/SearchQuerySql'
+import { guard } from '$src/middleware/guard'
 
 const users = new Hono<AppContext>()
 
@@ -61,7 +62,7 @@ users.get('/:id', describeRoute(getUserDocs), vValidator('param', ExternalIdPara
     return c.json(result)
 })
 
-users.patch('/:id', describeRoute(updateUserDocs), vValidator('param', ExternalIdParamsSchema), vValidator('json', UpdateUserSchema), async (c) => {
+users.patch('/:id', guard(), describeRoute(updateUserDocs), vValidator('param', ExternalIdParamsSchema), vValidator('json', UpdateUserSchema), async (c) => {
     const { id: externalId } = c.req.valid('param')
     const updates = c.req.valid('json')
     const db = c.get('db')
@@ -78,7 +79,7 @@ users.patch('/:id', describeRoute(updateUserDocs), vValidator('param', ExternalI
     return c.json({ message: 'User updated successfully', user: updated })
 })
 
-users.delete('/:id', describeRoute(deleteUserDocs), vValidator('param', ExternalIdParamsSchema), async (c) => {
+users.delete('/:id', guard(), describeRoute(deleteUserDocs), vValidator('param', ExternalIdParamsSchema), async (c) => {
     const { id: externalId } = c.req.valid('param')
     const db = c.get('db')
     const { users } = c.get('schema')

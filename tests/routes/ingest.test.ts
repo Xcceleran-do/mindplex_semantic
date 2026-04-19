@@ -2,6 +2,7 @@ import { describe, it, expect } from 'bun:test'
 import ingestRouter from '$src/routes/ingest'
 import { createMockDb } from '../helpers/db'
 import { createTestApp } from '../helpers/app'
+import { createAuthHeaders } from '../helpers/auth'
 
 const validArticleBody = {
     post: {
@@ -36,7 +37,7 @@ describe('POST /articles', () => {
         }))
         const res = await app.request('/articles', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...(await createAuthHeaders('admin')) },
             body: JSON.stringify(validArticleBody),
         })
         expect(res.status).toBe(200)
@@ -51,7 +52,7 @@ describe('POST /articles', () => {
         }))
         const res = await app.request('/articles', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...(await createAuthHeaders('admin')) },
             body: JSON.stringify(validArticleBody),
         })
         expect(res.status).toBe(409)
@@ -64,7 +65,7 @@ describe('POST /articles', () => {
         const app = createTestApp(ingestRouter, createMockDb())
         const res = await app.request('/articles', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...(await createAuthHeaders('admin')) },
             body: JSON.stringify({ post: { id: 1 } }),  // incomplete
         })
         expect(res.status).toBe(400)
@@ -80,7 +81,7 @@ describe('POST /articles', () => {
         }))
         const res = await app.request('/articles', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...(await createAuthHeaders('admin')) },
             body: JSON.stringify(bodyWithStringId),
         })
         expect(res.status).toBe(200)
@@ -97,7 +98,7 @@ describe('POST /users', () => {
         }))
         const res = await app.request('/users', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...(await createAuthHeaders('admin')) },
             body: JSON.stringify(validUserBody),
         })
         expect(res.status).toBe(200)
@@ -112,7 +113,7 @@ describe('POST /users', () => {
         }))
         const res = await app.request('/users', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...(await createAuthHeaders('admin')) },
             body: JSON.stringify(validUserBody),
         })
         expect(res.status).toBe(409)
@@ -125,7 +126,7 @@ describe('POST /users', () => {
         const app = createTestApp(ingestRouter, createMockDb())
         const res = await app.request('/users', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...(await createAuthHeaders('admin')) },
             body: JSON.stringify({ id: 1 }),  // incomplete
         })
         expect(res.status).toBe(400)

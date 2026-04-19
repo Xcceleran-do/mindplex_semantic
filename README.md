@@ -45,6 +45,19 @@ REDIS_URL=redis://localhost:6379
 AWS_BEDROCK_ACCESS_KEY=...
 AWS_BEDROCK_SECRET_KEY=...
 AWS_REGION=us-east-1
+
+# JWT auth (choose one verification mode)
+JWT_SECRET=...
+# or
+JWT_PUBLIC_KEY="-----BEGIN PUBLIC KEY-----\n...\n-----END PUBLIC KEY-----"
+# or
+JWT_JWKS_URI=https://auth.example.com/.well-known/jwks.json
+
+# Optional verification settings
+JWT_ALG=HS256
+JWT_ISSUER=https://auth.example.com
+JWT_AUDIENCE=mindplex-semantic
+JWT_ROLE_CLAIM=role
 ```
 
 4. Bootstrap the database and extensions:
@@ -78,3 +91,11 @@ bun run dev
 - `PUT /v1/articles/:id/summaries/:tone` stores or replaces a summary for a given article and tone.
 
 Only the `formal` summary tone generates and stores an embedding today.
+
+## Auth
+
+- `guard()` defaults to `admin` access.
+- `guard('optional')` parses JWTs when present and skips auth when absent.
+- `guard('editor')`, `guard('admin')`, and `guard('collaborator')` enforce minimum role access.
+- Role detection defaults to common claims such as `role`, `roles`, `scope`, `scp`, `permissions`, and `realm_access.roles`.
+- `JWT_ROLE_CLAIM` can override the role claim path with one or more comma-separated claim paths.

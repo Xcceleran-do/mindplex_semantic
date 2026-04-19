@@ -20,15 +20,13 @@ import { componentSchemas } from '$src/lib/openapi'
 
 
 const app = new Hono<AppContext>()
-const urlObj = new URL(process.env.DATABASE_URL || '');
-const isLocal = urlObj.hostname === 'localhost' || urlObj.hostname === '127.0.0.1';
-
+const useSsl = process.env.DB_REQUIRE_SSL === 'true'
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: isLocal ? false : {
+  ssl: useSsl ? {
     rejectUnauthorized: false
-  }
+  } : false
 });
 
 const db = drizzle({ schema, client: pool })
