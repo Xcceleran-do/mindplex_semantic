@@ -40,7 +40,12 @@ jobs:
 
       - name: Set image tag
         id: tag
-        run: echo "image_tag=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request_review" ]; then
+            echo "image_tag=${{ github.event.pull_request.head.sha }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "image_tag=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v6

@@ -30,7 +30,7 @@ hooks:
     pre:
       - type: env
         name: TF_VAR_image_tag
-        cmd: ["sh", "-c", "git rev-parse HEAD"]
+        cmd: ["sh", "-c", "printf '%s\n' \"$GITHUB_SHA\""]
     post:
       - type: run
         run_on: failure
