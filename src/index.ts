@@ -41,6 +41,23 @@ const dbMiddleware = createMiddleware(async (c, next) => {
 
 app.use(dbMiddleware)
 
+
+app.route('/ingest/v1', ingest)
+app.route('/articles/v1', articles)
+app.route('/articles/v1/:id/summaries', articleSummaries)
+app.route('/summaries/v1', summaryCollection)
+app.route('/search/v1', search)
+app.route('/users/v1', usersRoute)
+app.route('/retrieve/v1', retrieval)
+
+// Deprecated routes (/v1/resource) — will be removed after 2026-12-31
+app.use('/v1/*', createMiddleware(async (c, next) => {
+  await next()
+  const newPath = c.req.path.replace(/^\/v1\/([^/]+)/, '/$1/v1')
+  c.header('Deprecation', 'true')
+  c.header('Sunset', 'Sat, 31 Dec 2026 23:59:59 GMT')
+  c.header('Link', `<${newPath}>; rel="successor-version"`)
+}))
 app.route('/v1/ingest', ingest)
 app.route('/v1/articles', articles)
 app.route('/v1/articles/:id/summaries', articleSummaries)
