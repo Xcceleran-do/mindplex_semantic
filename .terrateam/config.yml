@@ -38,12 +38,12 @@ hooks:
         cmd: ["sh", "-c", "git rev-parse HEAD"]
       - type: run
         cmd: ["$TERRATEAM_ROOT/terraform/scripts/pre_debug.sh"]
-    post:
-      - type: run
-        run_on: failure
-        cmd:
-          [
-            "$TERRATEAM_ROOT/terraform/scripts/fetch_logs.sh",
-            "mindplex-dev-cluster",
-            "mindplex-semantic-dev-service"
-          ]
+    # post:
+    #   - type: run
+    #     run_on: failure
+    #     cmd:
+    #       [
+    #         "$TERRATEAM_ROOT/terraform/scripts/fetch_logs.sh",
+    #         "mindplex-dev-cluster",
+    #         "mindplex-semantic-dev-service"
+    #       ]
