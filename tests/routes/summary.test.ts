@@ -5,7 +5,7 @@ import summariesRouter, { summaryCollection } from '$src/routes/summary'
 import * as schema from '$src/db/schema'
 import { createMockDb } from '../helpers/db'
 import type { AppContext } from '$src/types'
-import { createAuthHeaders } from '../helpers/auth'
+import { createApiKeyHeaders } from '../helpers/apiKey'
 
 function createSummaryApp(mockDb: any) {
     const app = new Hono<AppContext>()
@@ -132,7 +132,7 @@ describe('PUT /articles/:id/summaries/:tone', () => {
         const app = createSummaryApp(createMockDb({ queryArticle: undefined }))
         const res = await app.request('/articles/99/summaries/formal', {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json', ...(await createAuthHeaders('editor')) },
+            headers: { 'Content-Type': 'application/json', ...createApiKeyHeaders() },
             body: JSON.stringify({ summary: 'A formal summary text.' }),
         })
         expect(res.status).toBe(404)
@@ -148,7 +148,7 @@ describe('PUT /articles/:id/summaries/:tone', () => {
         const app = createSummaryApp(mockDb)
         const res = await app.request('/articles/42/summaries/formal', {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json', ...(await createAuthHeaders('editor')) },
+            headers: { 'Content-Type': 'application/json', ...createApiKeyHeaders() },
             body: JSON.stringify({ summary: 'Created.' }),
         })
         expect(res.status).toBe(201)
@@ -166,7 +166,7 @@ describe('PUT /articles/:id/summaries/:tone', () => {
         const app = createSummaryApp(mockDb)
         const res = await app.request('/articles/42/summaries/formal', {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json', ...(await createAuthHeaders('editor')) },
+            headers: { 'Content-Type': 'application/json', ...createApiKeyHeaders() },
             body: JSON.stringify({ summary: 'Updated.' }),
         })
         expect(res.status).toBe(200)
@@ -178,7 +178,7 @@ describe('PUT /articles/:id/summaries/:tone', () => {
         const app = createSummaryApp(createMockDb())
         const res = await app.request('/articles/42/summaries/invalid_tone', {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json', ...(await createAuthHeaders('editor')) },
+            headers: { 'Content-Type': 'application/json', ...createApiKeyHeaders() },
             body: JSON.stringify({ summary: 'Some text.' }),
         })
         expect(res.status).toBe(400)
@@ -188,7 +188,7 @@ describe('PUT /articles/:id/summaries/:tone', () => {
         const app = createSummaryApp(createMockDb({ queryArticle: mockArticle }))
         const res = await app.request('/articles/42/summaries/formal', {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json', ...(await createAuthHeaders('editor')) },
+            headers: { 'Content-Type': 'application/json', ...createApiKeyHeaders() },
             body: JSON.stringify({}),
         })
         expect(res.status).toBe(400)

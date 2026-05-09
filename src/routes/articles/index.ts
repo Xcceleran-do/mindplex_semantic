@@ -25,7 +25,7 @@ import { buildFieldSelection, sanitizeUpdates } from '$src/utils'
 import { Embedding } from '$src/lib/Embedding'
 import { searchQuerySql } from '$src/lib/sql/SearchQuerySql'
 import { unionAll } from 'drizzle-orm/pg-core'
-import { guard } from '$src/middleware/guard'
+import { requireApiKey } from '$src/middleware/apiKey'
 
 const articles = new Hono<AppContext>()
 
@@ -101,7 +101,7 @@ articles.get('/:id', describeRoute(getArticleDocs), vValidator('param', External
     return c.json(result)
 })
 
-articles.patch('/:id', guard('editor'), describeRoute(updateArticleDocs), vValidator('param', ExternalIdParamsSchema), vValidator('json', UpdateArticleSchema), async (c) => {
+articles.patch('/:id', requireApiKey(), describeRoute(updateArticleDocs), vValidator('param', ExternalIdParamsSchema), vValidator('json', UpdateArticleSchema), async (c) => {
     const { id: externalId } = c.req.valid('param')
     const updates = c.req.valid('json')
     const db = c.get('db')
@@ -118,7 +118,7 @@ articles.patch('/:id', guard('editor'), describeRoute(updateArticleDocs), vValid
     return c.json({ message: 'Article updated successfully', article: updated })
 })
 
-articles.delete('/:id', guard(), describeRoute(deleteArticleDocs), vValidator('param', ExternalIdParamsSchema), async (c) => {
+articles.delete('/:id', requireApiKey(), describeRoute(deleteArticleDocs), vValidator('param', ExternalIdParamsSchema), async (c) => {
     const { id: externalId } = c.req.valid('param')
     const db = c.get('db')
     const { articles } = c.get('schema')

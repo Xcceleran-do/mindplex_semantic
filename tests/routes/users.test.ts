@@ -2,7 +2,7 @@ import { describe, it, expect } from 'bun:test'
 import usersRouter from '$src/routes/users'
 import { createMockDb } from '../helpers/db'
 import { createTestApp } from '../helpers/app'
-import { createAuthHeaders } from '../helpers/auth'
+import { createApiKeyHeaders } from '../helpers/apiKey'
 
 const mockUser = {
     id: 1,
@@ -65,7 +65,7 @@ describe('PATCH /:id', () => {
         }))
         const res = await app.request('/10', {
             method: 'PATCH',
-            headers: { 'Content-Type': 'application/json', ...(await createAuthHeaders('admin')) },
+            headers: { 'Content-Type': 'application/json', ...createApiKeyHeaders() },
             body: JSON.stringify({ firstName: 'Bob' }),
         })
         expect(res.status).toBe(200)
@@ -78,7 +78,7 @@ describe('PATCH /:id', () => {
         const app = createTestApp(usersRouter, createMockDb({ selectResult: [] }))
         const res = await app.request('/99', {
             method: 'PATCH',
-            headers: { 'Content-Type': 'application/json', ...(await createAuthHeaders('admin')) },
+            headers: { 'Content-Type': 'application/json', ...createApiKeyHeaders() },
             body: JSON.stringify({ firstName: 'Bob' }),
         })
         expect(res.status).toBe(404)
@@ -88,7 +88,7 @@ describe('PATCH /:id', () => {
         const app = createTestApp(usersRouter, createMockDb({ selectResult: [{ id: 1 }] }))
         const res = await app.request('/10', {
             method: 'PATCH',
-            headers: { 'Content-Type': 'application/json', ...(await createAuthHeaders('admin')) },
+            headers: { 'Content-Type': 'application/json', ...createApiKeyHeaders() },
             body: JSON.stringify({ id: 999, searchName: 'hacked' }),
         })
         expect(res.status).toBe(400)
@@ -102,7 +102,7 @@ describe('DELETE /:id', () => {
         const app = createTestApp(usersRouter, createMockDb({ selectResult: [{ id: 1 }] }))
         const res = await app.request('/10', {
             method: 'DELETE',
-            headers: await createAuthHeaders('admin'),
+            headers: createApiKeyHeaders(),
         })
         expect(res.status).toBe(200)
         const body = await res.json()
@@ -114,7 +114,7 @@ describe('DELETE /:id', () => {
         const app = createTestApp(usersRouter, createMockDb({ selectResult: [] }))
         const res = await app.request('/99', {
             method: 'DELETE',
-            headers: await createAuthHeaders('admin'),
+            headers: createApiKeyHeaders(),
         })
         expect(res.status).toBe(404)
     })

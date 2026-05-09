@@ -55,6 +55,8 @@ JWT_JWKS_URI=https://auth.example.com/.well-known/jwks.json
 
 # API key auth for ingestion
 INGEST_API_KEY=replace-with-a-shared-secret
+# or shared write protection for mutating routes
+API_KEY=replace-with-a-shared-secret
 
 # Optional verification settings
 JWT_ALG=HS256
@@ -102,4 +104,4 @@ Only the `formal` summary tone generates and stores an embedding today.
 - `guard('editor')`, `guard('admin')`, and `guard('collaborator')` enforce minimum role access.
 - Role detection defaults to common claims such as `role`, `roles`, `scope`, `scp`, `permissions`, and `realm_access.roles`.
 - `JWT_ROLE_CLAIM` can override the role claim path with one or more comma-separated claim paths.
-- Ingestion endpoints also support API key protection via `x-api-key` or `Authorization: ApiKey <key>`.
+- Protected write endpoints use API key protection via `x-api-key` or `Authorization: ApiKey <key>`.

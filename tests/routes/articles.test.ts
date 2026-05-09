@@ -2,7 +2,7 @@ import { describe, it, expect } from 'bun:test'
 import articlesRouter from '$src/routes/articles'
 import { createMockDb } from '../helpers/db'
 import { createTestApp } from '../helpers/app'
-import { createAuthHeaders } from '../helpers/auth'
+import { createApiKeyHeaders } from '../helpers/apiKey'
 
 const mockArticle = {
     id: 1,
@@ -84,7 +84,7 @@ describe('PATCH /:id', () => {
         }))
         const res = await app.request('/42', {
             method: 'PATCH',
-            headers: { 'Content-Type': 'application/json', ...(await createAuthHeaders('editor')) },
+            headers: { 'Content-Type': 'application/json', ...createApiKeyHeaders() },
             body: JSON.stringify({ title: 'Updated Title' }),
         })
         expect(res.status).toBe(200)
@@ -97,7 +97,7 @@ describe('PATCH /:id', () => {
         const app = createTestApp(articlesRouter, createMockDb({ selectResult: [] }))
         const res = await app.request('/99', {
             method: 'PATCH',
-            headers: { 'Content-Type': 'application/json', ...(await createAuthHeaders('editor')) },
+            headers: { 'Content-Type': 'application/json', ...createApiKeyHeaders() },
             body: JSON.stringify({ title: 'New' }),
         })
         expect(res.status).toBe(404)
@@ -107,7 +107,7 @@ describe('PATCH /:id', () => {
         const app = createTestApp(articlesRouter, createMockDb({ selectResult: [{ id: 1 }] }))
         const res = await app.request('/42', {
             method: 'PATCH',
-            headers: { 'Content-Type': 'application/json', ...(await createAuthHeaders('editor')) },
+            headers: { 'Content-Type': 'application/json', ...createApiKeyHeaders() },
             body: JSON.stringify({ embedding: [0.1], searchVector: 'invalid' }),
         })
         expect(res.status).toBe(400)
@@ -121,7 +121,7 @@ describe('PATCH /:id', () => {
         }))
         const res = await app.request('/42', {
             method: 'PATCH',
-            headers: { 'Content-Type': 'application/json', ...(await createAuthHeaders('editor')) },
+            headers: { 'Content-Type': 'application/json', ...createApiKeyHeaders() },
             body: JSON.stringify({ slug: 'updated-slug' }),
         })
         expect(res.status).toBe(200)
@@ -135,7 +135,7 @@ describe('DELETE /:id', () => {
         const app = createTestApp(articlesRouter, createMockDb({ selectResult: [{ id: 1 }] }))
         const res = await app.request('/42', {
             method: 'DELETE',
-            headers: await createAuthHeaders('admin'),
+            headers: createApiKeyHeaders(),
         })
         expect(res.status).toBe(200)
         const body = await res.json()
@@ -147,7 +147,7 @@ describe('DELETE /:id', () => {
         const app = createTestApp(articlesRouter, createMockDb({ selectResult: [] }))
         const res = await app.request('/99', {
             method: 'DELETE',
-            headers: await createAuthHeaders('admin'),
+            headers: createApiKeyHeaders(),
         })
         expect(res.status).toBe(404)
     })

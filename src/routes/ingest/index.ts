@@ -7,44 +7,11 @@ import { eq } from 'drizzle-orm'
 import { vValidator } from '@hono/valibot-validator'
 import { describeRoute } from 'hono-openapi'
 import { IngestArticleSchema, IngestUserSchema, ingestArticleDocs, ingestUserDocs } from './schema'
-import { createMiddleware } from 'hono/factory'
+import { requireApiKey } from '$src/middleware/apiKey'
 
 const ingest = new Hono<AppContext>()
 
-const requireIngestApiKey = createMiddleware<AppContext>(async (c, next) => {
-    const configuredApiKey = process.env.INGEST_API_KEY || process.env.API_KEY
-
-    if (!configuredApiKey) {
-        console.error('Ingest API key protection is enabled, but INGEST_API_KEY/API_KEY is not configured')
-        return c.json({
-            success: false,
-            error: 'API key authentication is not configured',
-        }, 500)
-    }
-
-    const xApiKey = c.req.header('x-api-key')
-    const authorization = c.req.header('authorization')
-    const authorizationToken = authorization?.split(/\s+/, 2)[1]
-    const providedApiKey = xApiKey || authorizationToken
-
-    if (!providedApiKey) {
-        return c.json({
-            success: false,
-            error: 'API key required',
-        }, 401)
-    }
-
-    if (providedApiKey !== configuredApiKey) {
-        return c.json({
-            success: false,
-            error: 'Invalid API key',
-        }, 403)
-    }
-
-    await next()
-})
-
-ingest.post('/articles', requireIngestApiKey, describeRoute(ingestArticleDocs), vValidator('json', IngestArticleSchema), async (c) => {
+ingest.post('/articles', requireApiKey({ envKeys: ['INGEST_API_KEY', 'API_KEY'] }), describeRoute(ingestArticleDocs), vValidator('json', IngestArticleSchema), async (c) => {
     const body = c.req.valid('json');
     const db = c.get('db');
     const schema = c.get('schema')
@@ -109,7 +76,7 @@ ingest.post('/articles', requireIngestApiKey, describeRoute(ingestArticleDocs), 
     }
 })
 
-ingest.post('/users', requireIngestApiKey, describeRoute(ingestUserDocs), vValidator('json', IngestUserSchema), async (c) => {
+ingest.post('/users', requireApiKey({ envKeys: ['INGEST_API_KEY', 'API_KEY'] }), describeRoute(ingestUserDocs), vValidator('json', IngestUserSchema), async (c) => {
     const userData = c.req.valid('json');
     const db = c.get('db');
     const schema = c.get('schema')
