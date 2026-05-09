@@ -16,12 +16,10 @@ const mockUser = {
 }
 
 describe('GET /search', () => {
-    it('returns empty users array when no query provided', async () => {
+    it('returns 400 when no query provided', async () => {
         const app = createTestApp(usersRouter, createMockDb())
         const res = await app.request('/search')
-        expect(res.status).toBe(200)
-        const body = await res.json()
-        expect(body).toEqual({ users: [] })
+        expect(res.status).toBe(400)
     })
 
     it('returns matching users', async () => {

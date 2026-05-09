@@ -27,8 +27,6 @@ users.get('/search', describeRoute(searchUsersDocs), vValidator('query', SearchQ
     const db = c.get('db')
     const { users } = c.get('schema')
 
-    if (!searchQuery) return c.json({ users: [] })
-
     const relevanceScore = searchQuerySql.userSearchScore(searchQuery, users).as('relevance_score')
 
     const selection = buildFieldSelection(users, fields, FORBIDDEN_USER_COLUMNS, {

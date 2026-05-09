@@ -36,8 +36,6 @@ articles.get('/search', describeRoute(searchArticlesDocs), vValidator('query', S
     const { q: searchQuery, limit, page, fields } = c.req.valid('query')
     const offset = (page - 1) * limit
 
-    if (!searchQuery) return c.json({ articles: [] })
-
     const embeddingService = new Embedding()
     const queryEmbedding = await embeddingService.getEmbeddings(searchQuery)
 

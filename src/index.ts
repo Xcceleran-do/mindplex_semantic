@@ -122,8 +122,7 @@ app.get('/health', async (c) => {
 
   } catch (error) {
     console.error(error)
-    const msg = JSON.stringify(error)
-    return c.json({ error: 'Failed to check database health ' + msg }, 500);
+    return c.json({ error: 'Failed to check database health' }, 500);
   }
 })
 

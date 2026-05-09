@@ -22,6 +22,7 @@ export interface ContentChunk {
     author: string
     date: string
     category: string
+    tags: string
     index: number
     content: string
 }
@@ -31,18 +32,14 @@ export interface PostData {
     post_date: string,
     post_content: string
     brief_overview: string,
-    tag: {
-        name: string,
-    } | [] | undefined,
-    category: {
-        name: string,
-    } | [] | undefined,
+    tag?: { name: string } | { name: string }[],
+    category?: { name: string } | { name: string }[],
     post_title: string,
     post_name: string,
     other_authors: [],
     co_authors: [],
     post_editors: [],
-    author_name: string,
+    author_name: string | { name: string } | { name: string }[],
 }
 
 export interface UserData {

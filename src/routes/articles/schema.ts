@@ -11,7 +11,7 @@ export const ALLOWED_UPDATE_FIELDS = new Set(['title', 'teaser', 'content', 'cat
 
 
 export const SearchQuerySchema = v.object({
-    q: v.optional(v.string()),
+    q: v.pipe(v.string(), v.transform((value) => value.trim()), v.minLength(1)),
     limit: PaginationLimitSchema,
     page: PaginationPageSchema,
     fields: createFieldsSchema(articles, FORBIDDEN_COLUMNS),
@@ -31,6 +31,7 @@ export const UpdateArticleSchema = v.object({
     content: v.optional(v.string()),
     category: v.optional(v.array(v.string())),
     tags: v.optional(v.array(v.string())),
+    slug: v.optional(v.string()),
 });
 
 export const RelatedArticlesQuerySchema = v.object({

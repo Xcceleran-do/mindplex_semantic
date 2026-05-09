@@ -19,20 +19,16 @@ const mockArticle = {
 }
 
 describe('GET /search', () => {
-    it('returns empty articles array when query is missing', async () => {
+    it('returns 400 when query is missing', async () => {
         const app = createTestApp(articlesRouter, createMockDb())
         const res = await app.request('/search')
-        expect(res.status).toBe(200)
-        const body = await res.json()
-        expect(body).toEqual({ articles: [] })
+        expect(res.status).toBe(400)
     })
 
-    it('returns empty articles array when q param is empty string', async () => {
+    it('returns 400 when q param is empty string', async () => {
         const app = createTestApp(articlesRouter, createMockDb())
         const res = await app.request('/search?q=')
-        expect(res.status).toBe(200)
-        const body = await res.json()
-        expect(body).toEqual({ articles: [] })
+        expect(res.status).toBe(400)
     })
 })
 
@@ -115,6 +111,22 @@ describe('PATCH /:id', () => {
             body: JSON.stringify({ embedding: [0.1], searchVector: 'invalid' }),
         })
         expect(res.status).toBe(400)
+    })
+
+    it('accepts slug updates', async () => {
+        const updated = { ...mockArticle, slug: 'updated-slug' }
+        const app = createTestApp(articlesRouter, createMockDb({
+            selectResult: [{ id: 1 }],
+            updateResult: [updated],
+        }))
+        const res = await app.request('/42', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', ...(await createAuthHeaders('editor')) },
+            body: JSON.stringify({ slug: 'updated-slug' }),
+        })
+        expect(res.status).toBe(200)
+        const body = await res.json()
+        expect(body.article.slug).toBe('updated-slug')
     })
 })
 
