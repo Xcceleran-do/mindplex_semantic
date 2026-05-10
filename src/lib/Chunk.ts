@@ -57,8 +57,6 @@ export class Chunk {
         let currentTexts: string[] = []
         let currentLength = 0
 
-        console.log(Array.isArray(postData.category), postData.category)
-
         const category = toNames(postData.category)
         const author = toNames(postData.author_name)
         const tags = toNames(postData.tag)

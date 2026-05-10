@@ -20,15 +20,13 @@ import { componentSchemas } from '$src/lib/openapi'
 
 
 const app = new Hono<AppContext>()
-const urlObj = new URL(process.env.DATABASE_URL || '');
-const isLocal = urlObj.hostname === 'localhost' || urlObj.hostname === '127.0.0.1';
-
+const useSsl = process.env.DB_REQUIRE_SSL === 'true'
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: isLocal ? false : {
+  ssl: useSsl ? {
     rejectUnauthorized: false
-  }
+  } : false
 });
 
 const db = drizzle({ schema, client: pool })
@@ -124,8 +122,7 @@ app.get('/health', async (c) => {
 
   } catch (error) {
     console.error(error)
-    const msg = JSON.stringify(error)
-    return c.json({ error: 'Failed to check database health ' + msg }, 500);
+    return c.json({ error: 'Failed to check database health' }, 500);
   }
 })
 

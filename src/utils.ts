@@ -16,7 +16,7 @@ import * as v from 'valibot';
  * ```
  */
 
-export function toNames(input: { name: string } | { name: string }[]) {
+export function toNames(input?: string | { name: string } | { name: string }[] | null) {
     if (!input) return '';
 
     return Array.isArray(input)

@@ -19,6 +19,7 @@ import {
     upsertArticleSummaryDocs,
 } from './schema'
 import { buildFieldSelection } from '$src/utils'
+import { requireApiKey } from '$src/middleware/apiKey'
 
 const summaries = new Hono<AppContext>()
 export const summaryCollection = new Hono<AppContext>()
@@ -166,7 +167,7 @@ summaries.get('/:tone', describeRoute(getArticleSummaryDocs), vValidator('param'
     return c.json(summary)
 })
 
-summaries.put('/:tone', describeRoute(upsertArticleSummaryDocs), vValidator('param', SummaryToneParamsSchema), vValidator('json', UpsertSummarySchema), async (c) => {
+summaries.put('/:tone', requireApiKey(), describeRoute(upsertArticleSummaryDocs), vValidator('param', SummaryToneParamsSchema), vValidator('json', UpsertSummarySchema), async (c) => {
     const { id: externalId, tone } = c.req.valid('param')
     const { summary } = c.req.valid('json')
     const article = await findArticleByExternalId(c, externalId)

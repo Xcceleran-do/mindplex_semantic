@@ -99,14 +99,13 @@ class ArticleSeeder {
             throw new Error('DATABASE_URL environment variable is required');
         }
 
-        const urlObj = new URL(databaseUrl);
-        const isLocal = urlObj.hostname === 'localhost' || urlObj.hostname === '127.0.0.1';
+        const useSsl = process.env.DB_REQUIRE_SSL === 'true';
 
         const pool = new Pool({
             connectionString: databaseUrl,
-            ssl: isLocal ? false : {
+            ssl: useSsl ? {
                 rejectUnauthorized: false
-            }
+            } : false
         });
 
         this.db = drizzle({ schema, client: pool });

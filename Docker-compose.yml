@@ -4,13 +4,13 @@ services:
     environment:
       POSTGRES_USER: mindplex
       POSTGRES_PASSWORD: mindplex
-      POSTGRES_DB: mindplex_shared
+      POSTGRES_DB: postgres
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U mindplex -d semantic"]
+      test: ["CMD-SHELL", "pg_isready -U mindplex -d postgres"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -29,11 +29,23 @@ services:
       retries: 5
 
   api:
-    build: .
+    build:
+      context: .
+      target: development
     ports:
       - "3000:3000"
     environment:
       DATABASE_URL: postgres://mindplex:mindplex@db:5432/semantic
+      DB_ADMIN_DATABASE: postgres
+      DB_REQUIRE_SSL: "false"
+    command: >
+      /bin/sh -c "
+      echo '[startup] db:setup' &&
+      bun run db:setup &&
+      echo '[startup] db:dev-migrate' &&
+      bun run db:dev-migrate &&
+      echo '[startup] api start' &&
+      bun run dev"
     depends_on:
       db:
         condition: service_healthy

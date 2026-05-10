@@ -2,6 +2,7 @@ import { describe, it, expect } from 'bun:test'
 import articlesRouter from '$src/routes/articles'
 import { createMockDb } from '../helpers/db'
 import { createTestApp } from '../helpers/app'
+import { createApiKeyHeaders } from '../helpers/apiKey'
 
 const mockArticle = {
     id: 1,
@@ -18,20 +19,16 @@ const mockArticle = {
 }
 
 describe('GET /search', () => {
-    it('returns empty articles array when query is missing', async () => {
+    it('returns 400 when query is missing', async () => {
         const app = createTestApp(articlesRouter, createMockDb())
         const res = await app.request('/search')
-        expect(res.status).toBe(200)
-        const body = await res.json()
-        expect(body).toEqual({ articles: [] })
+        expect(res.status).toBe(400)
     })
 
-    it('returns empty articles array when q param is empty string', async () => {
+    it('returns 400 when q param is empty string', async () => {
         const app = createTestApp(articlesRouter, createMockDb())
         const res = await app.request('/search?q=')
-        expect(res.status).toBe(200)
-        const body = await res.json()
-        expect(body).toEqual({ articles: [] })
+        expect(res.status).toBe(400)
     })
 })
 
@@ -87,7 +84,7 @@ describe('PATCH /:id', () => {
         }))
         const res = await app.request('/42', {
             method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...createApiKeyHeaders() },
             body: JSON.stringify({ title: 'Updated Title' }),
         })
         expect(res.status).toBe(200)
@@ -100,7 +97,7 @@ describe('PATCH /:id', () => {
         const app = createTestApp(articlesRouter, createMockDb({ selectResult: [] }))
         const res = await app.request('/99', {
             method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...createApiKeyHeaders() },
             body: JSON.stringify({ title: 'New' }),
         })
         expect(res.status).toBe(404)
@@ -110,17 +107,36 @@ describe('PATCH /:id', () => {
         const app = createTestApp(articlesRouter, createMockDb({ selectResult: [{ id: 1 }] }))
         const res = await app.request('/42', {
             method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...createApiKeyHeaders() },
             body: JSON.stringify({ embedding: [0.1], searchVector: 'invalid' }),
         })
         expect(res.status).toBe(400)
+    })
+
+    it('accepts slug updates', async () => {
+        const updated = { ...mockArticle, slug: 'updated-slug' }
+        const app = createTestApp(articlesRouter, createMockDb({
+            selectResult: [{ id: 1 }],
+            updateResult: [updated],
+        }))
+        const res = await app.request('/42', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', ...createApiKeyHeaders() },
+            body: JSON.stringify({ slug: 'updated-slug' }),
+        })
+        expect(res.status).toBe(200)
+        const body = await res.json()
+        expect(body.article.slug).toBe('updated-slug')
     })
 })
 
 describe('DELETE /:id', () => {
     it('deletes article and returns confirmation', async () => {
         const app = createTestApp(articlesRouter, createMockDb({ selectResult: [{ id: 1 }] }))
-        const res = await app.request('/42', { method: 'DELETE' })
+        const res = await app.request('/42', {
+            method: 'DELETE',
+            headers: createApiKeyHeaders(),
+        })
         expect(res.status).toBe(200)
         const body = await res.json()
         expect(body.message).toBe('Article deleted successfully')
@@ -129,7 +145,10 @@ describe('DELETE /:id', () => {
 
     it('returns 404 when article does not exist', async () => {
         const app = createTestApp(articlesRouter, createMockDb({ selectResult: [] }))
-        const res = await app.request('/99', { method: 'DELETE' })
+        const res = await app.request('/99', {
+            method: 'DELETE',
+            headers: createApiKeyHeaders(),
+        })
         expect(res.status).toBe(404)
     })
 })

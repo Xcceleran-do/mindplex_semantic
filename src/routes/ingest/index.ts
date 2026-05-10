@@ -7,10 +7,11 @@ import { eq } from 'drizzle-orm'
 import { vValidator } from '@hono/valibot-validator'
 import { describeRoute } from 'hono-openapi'
 import { IngestArticleSchema, IngestUserSchema, ingestArticleDocs, ingestUserDocs } from './schema'
+import { requireApiKey } from '$src/middleware/apiKey'
 
 const ingest = new Hono<AppContext>()
 
-ingest.post('/articles', describeRoute(ingestArticleDocs), vValidator('json', IngestArticleSchema), async (c) => {
+ingest.post('/articles', requireApiKey({ envKeys: ['INGEST_API_KEY', 'API_KEY'] }), describeRoute(ingestArticleDocs), vValidator('json', IngestArticleSchema), async (c) => {
     const body = c.req.valid('json');
     const db = c.get('db');
     const schema = c.get('schema')
@@ -75,7 +76,7 @@ ingest.post('/articles', describeRoute(ingestArticleDocs), vValidator('json', In
     }
 })
 
-ingest.post('/users', describeRoute(ingestUserDocs), vValidator('json', IngestUserSchema), async (c) => {
+ingest.post('/users', requireApiKey({ envKeys: ['INGEST_API_KEY', 'API_KEY'] }), describeRoute(ingestUserDocs), vValidator('json', IngestUserSchema), async (c) => {
     const userData = c.req.valid('json');
     const db = c.get('db');
     const schema = c.get('schema')

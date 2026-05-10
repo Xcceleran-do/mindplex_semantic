@@ -17,7 +17,7 @@ export const ExternalIdParamsSchema = v.object({
 })
 
 export const SearchQuerySchema = v.object({
-    q: v.optional(v.string()),
+    q: v.pipe(v.string(), v.transform((value) => value.trim()), v.minLength(1)),
     limit: PaginationLimitSchema,
     page: PaginationPageSchema,
     fields: createFieldsSchema(users, FORBIDDEN_USER_COLUMNS),

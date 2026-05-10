@@ -2,6 +2,7 @@ import { describe, it, expect } from 'bun:test'
 import usersRouter from '$src/routes/users'
 import { createMockDb } from '../helpers/db'
 import { createTestApp } from '../helpers/app'
+import { createApiKeyHeaders } from '../helpers/apiKey'
 
 const mockUser = {
     id: 1,
@@ -15,12 +16,10 @@ const mockUser = {
 }
 
 describe('GET /search', () => {
-    it('returns empty users array when no query provided', async () => {
+    it('returns 400 when no query provided', async () => {
         const app = createTestApp(usersRouter, createMockDb())
         const res = await app.request('/search')
-        expect(res.status).toBe(200)
-        const body = await res.json()
-        expect(body).toEqual({ users: [] })
+        expect(res.status).toBe(400)
     })
 
     it('returns matching users', async () => {
@@ -66,7 +65,7 @@ describe('PATCH /:id', () => {
         }))
         const res = await app.request('/10', {
             method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...createApiKeyHeaders() },
             body: JSON.stringify({ firstName: 'Bob' }),
         })
         expect(res.status).toBe(200)
@@ -79,7 +78,7 @@ describe('PATCH /:id', () => {
         const app = createTestApp(usersRouter, createMockDb({ selectResult: [] }))
         const res = await app.request('/99', {
             method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...createApiKeyHeaders() },
             body: JSON.stringify({ firstName: 'Bob' }),
         })
         expect(res.status).toBe(404)
@@ -89,7 +88,7 @@ describe('PATCH /:id', () => {
         const app = createTestApp(usersRouter, createMockDb({ selectResult: [{ id: 1 }] }))
         const res = await app.request('/10', {
             method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...createApiKeyHeaders() },
             body: JSON.stringify({ id: 999, searchName: 'hacked' }),
         })
         expect(res.status).toBe(400)
@@ -101,7 +100,10 @@ describe('PATCH /:id', () => {
 describe('DELETE /:id', () => {
     it('deletes user and returns confirmation', async () => {
         const app = createTestApp(usersRouter, createMockDb({ selectResult: [{ id: 1 }] }))
-        const res = await app.request('/10', { method: 'DELETE' })
+        const res = await app.request('/10', {
+            method: 'DELETE',
+            headers: createApiKeyHeaders(),
+        })
         expect(res.status).toBe(200)
         const body = await res.json()
         expect(body.message).toBe('User deleted successfully')
@@ -110,7 +112,10 @@ describe('DELETE /:id', () => {
 
     it('returns 404 when user does not exist', async () => {
         const app = createTestApp(usersRouter, createMockDb({ selectResult: [] }))
-        const res = await app.request('/99', { method: 'DELETE' })
+        const res = await app.request('/99', {
+            method: 'DELETE',
+            headers: createApiKeyHeaders(),
+        })
         expect(res.status).toBe(404)
     })
 })

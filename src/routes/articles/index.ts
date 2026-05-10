@@ -25,6 +25,7 @@ import { buildFieldSelection, sanitizeUpdates } from '$src/utils'
 import { Embedding } from '$src/lib/Embedding'
 import { searchQuerySql } from '$src/lib/sql/SearchQuerySql'
 import { unionAll } from 'drizzle-orm/pg-core'
+import { requireApiKey } from '$src/middleware/apiKey'
 
 const articles = new Hono<AppContext>()
 
@@ -34,8 +35,6 @@ articles.get('/search', describeRoute(searchArticlesDocs), vValidator('query', S
     const { articles, articleChunks } = c.get('schema')
     const { q: searchQuery, limit, page, fields } = c.req.valid('query')
     const offset = (page - 1) * limit
-
-    if (!searchQuery) return c.json({ articles: [] })
 
     const embeddingService = new Embedding()
     const queryEmbedding = await embeddingService.getEmbeddings(searchQuery)
@@ -102,7 +101,7 @@ articles.get('/:id', describeRoute(getArticleDocs), vValidator('param', External
     return c.json(result)
 })
 
-articles.patch('/:id', describeRoute(updateArticleDocs), vValidator('param', ExternalIdParamsSchema), vValidator('json', UpdateArticleSchema), async (c) => {
+articles.patch('/:id', requireApiKey(), describeRoute(updateArticleDocs), vValidator('param', ExternalIdParamsSchema), vValidator('json', UpdateArticleSchema), async (c) => {
     const { id: externalId } = c.req.valid('param')
     const updates = c.req.valid('json')
     const db = c.get('db')
@@ -119,7 +118,7 @@ articles.patch('/:id', describeRoute(updateArticleDocs), vValidator('param', Ext
     return c.json({ message: 'Article updated successfully', article: updated })
 })
 
-articles.delete('/:id', describeRoute(deleteArticleDocs), vValidator('param', ExternalIdParamsSchema), async (c) => {
+articles.delete('/:id', requireApiKey(), describeRoute(deleteArticleDocs), vValidator('param', ExternalIdParamsSchema), async (c) => {
     const { id: externalId } = c.req.valid('param')
     const db = c.get('db')
     const { articles } = c.get('schema')
