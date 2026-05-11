@@ -26,6 +26,12 @@ variable "image_tag" {
   type        = string
 }
 
+variable "API_KEY" {
+  description = "The API key for the environment"
+  type        = string
+  sensitive   = true
+}
+
 variable "DB_PASSWORD" {
   description = "Database password passed via env var TF_VAR_DB_PASSWORD"
   type        = string
@@ -110,6 +116,10 @@ module "mindplex_semantic" {
     {
       name  = "DB_REQUIRE_SSL"
       value = "true"
-    }
+    },
+    {
+      name  = "API_KEY"
+      value = var.API_KEY
+    },
   ]
 }
