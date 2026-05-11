@@ -110,6 +110,10 @@ module "mindplex_semantic" {
     {
       name  = "DB_REQUIRE_SSL"
       value = "true"
-    }
+    },
+    {
+      name  = "API_KEY"
+      value = var.API_KEY
+    },
   ]
 }
