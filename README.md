@@ -97,6 +97,16 @@ bun run dev
 
 Only the `formal` summary tone generates and stores an embedding today.
 
+## Search benchmark
+
+Use the benchmark script to generate a synthetic article corpus, ingest it through the API, and measure hybrid search latency plus relevance across exact, paraphrase, noisy, rare-token, long-form, and unrelated control queries.
+
+```bash
+INGEST_API_KEY=replace-with-a-shared-secret bun run bench:search --reset --count 16 --concurrency 1 --repeats 3 --search-delay-ms 500 --show-results --json benchmark-report.json
+```
+
+The script expects the API to be reachable at `http://localhost:3000` by default. Override it with `--base-url` or `BENCH_BASE_URL`. Use `--reset` to delete the generated ID range before seeding, `--no-seed` to benchmark an already-seeded environment, `--cleanup` to delete generated articles after the run, `--ingest-delay-ms` / `--search-delay-ms` to avoid embedding-provider rate limits, `--show-results` to print expected-vs-returned candidates, and `--json benchmark-report.json` to save full per-query timings, scores, hit ranks, and top candidates.
+
 ## Auth
 
 - `guard()` defaults to `admin` access.

@@ -38,6 +38,18 @@ services:
       DATABASE_URL: postgres://mindplex:mindplex@db:5432/semantic
       DB_ADMIN_DATABASE: postgres
       DB_REQUIRE_SSL: "false"
+      REDIS_URL: redis://redis:6379
+      REDIS_TLS: "false"
+      AWS_BEDROCK_ACCESS_KEY: ${AWS_BEDROCK_ACCESS_KEY:-}
+      AWS_BEDROCK_SECRET_KEY: ${AWS_BEDROCK_SECRET_KEY:-}
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+      AWS_MAX_ATTEMPTS: ${AWS_MAX_ATTEMPTS:-3}
+      AWS_BEDROCK_HTTP1: ${AWS_BEDROCK_HTTP1:-true}
+      AWS_RETRY_BASE_DELAY_MS: ${AWS_RETRY_BASE_DELAY_MS:-750}
+      AWS_BEDROCK_REQUEST_TIMEOUT_MS: ${AWS_BEDROCK_REQUEST_TIMEOUT_MS:-30000}
+      EMBEDDING_BATCH_SIZE: ${EMBEDDING_BATCH_SIZE:-1}
+      INGEST_API_KEY: ${INGEST_API_KEY:-}
+      API_KEY: ${API_KEY:-}
     command: >
       /bin/sh -c "
       echo '[startup] db:setup' &&

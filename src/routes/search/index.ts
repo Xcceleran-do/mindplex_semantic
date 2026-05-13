@@ -20,7 +20,13 @@ search.get('/', describeRoute(hybridSearchDocs), vValidator('query', SearchQuery
     if (!searchQuery) return c.json({ articles: [] })
 
     const embeddingService = new Embedding()
-    const queryEmbedding = await embeddingService.getEmbeddings(searchQuery)
+    let queryEmbedding: number[]
+    try {
+        queryEmbedding = await embeddingService.getEmbeddings(searchQuery)
+    } catch (error) {
+        console.error('Search embedding failed:', error)
+        return c.json({ success: false, error: 'Embedding service failed' }, 502)
+    }
 
     const articleScore = searchQuerySql.hybridScore(articles.embedding, articles.searchVector, queryEmbedding, searchQuery)
     const chunkScore = searchQuerySql.hybridScore(articleChunks.embedding, articleChunks.searchVector, queryEmbedding, searchQuery)

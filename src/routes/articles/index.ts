@@ -37,7 +37,13 @@ articles.get('/search', describeRoute(searchArticlesDocs), vValidator('query', S
     const offset = (page - 1) * limit
 
     const embeddingService = new Embedding()
-    const queryEmbedding = await embeddingService.getEmbeddings(searchQuery)
+    let queryEmbedding: number[]
+    try {
+        queryEmbedding = await embeddingService.getEmbeddings(searchQuery)
+    } catch (error) {
+        console.error('Article search embedding failed:', error)
+        return c.json({ success: false, error: 'Embedding service failed' }, 502)
+    }
 
     const articleScore = searchQuerySql.hybridScore(articles.embedding, articles.searchVector, queryEmbedding, searchQuery)
     const chunkScore = searchQuerySql.hybridScore(articleChunks.embedding, articleChunks.searchVector, queryEmbedding, searchQuery)

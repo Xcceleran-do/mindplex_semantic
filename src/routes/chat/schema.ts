@@ -1,7 +1,7 @@
 import * as v from 'valibot';
 import { IdParamSchema } from '$src/lib/validators';
 import { resolver } from 'hono-openapi';
-import { type DescribeRouteOptions, jsonContent, ref } from '$src/lib/openapi';
+import { type DescribeRouteOptions, jsonContent, ref, responses } from '$src/lib/openapi';
 
 // ─── Validation schemas ────────────────────────────────────────────────────────
 
@@ -31,5 +31,6 @@ export const retrieveChunksDocs: DescribeRouteOptions = {
       { type: 'array', items: ref('RetrievedChunk') },
       'Nearest chunks ranked by similarity score'
     ),
+    502: responses.embeddingError,
   }
 };

@@ -34,10 +34,8 @@ ingest.post('/articles', requireApiKey({ envKeys: ['INGEST_API_KEY', 'API_KEY'] 
         const chunk = new Chunk()
         const chunks = chunk.processChunk(pageContents)
 
-        const [titleEmbedding, chunkEmbeddings] = await Promise.all([
-            embedding.getEmbeddings(titleAndTeaser),
-            embedding.getBatchEmbeddings(chunks)
-        ])
+        const titleEmbedding = await embedding.getEmbeddings(titleAndTeaser)
+        const chunkEmbeddings = await embedding.getBatchEmbeddings(chunks)
 
         await db.transaction(async (tx) => {
             const article = await tx.insert(schema.articles).values({
