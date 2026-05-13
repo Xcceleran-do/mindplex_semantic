@@ -21,7 +21,13 @@ retrieval.post('/chunks', describeRoute(retrieveChunksDocs), vValidator('json', 
     if (!userQuery) return c.json({})
 
     const embeddingService = new Embedding();
-    const queryEmbedding = await embeddingService.getEmbeddings(userQuery);
+    let queryEmbedding: number[];
+    try {
+        queryEmbedding = await embeddingService.getEmbeddings(userQuery);
+    } catch (error) {
+        console.error('Chunk retrieval embedding failed:', error);
+        return c.json({ success: false, error: 'Embedding service failed' }, 502);
+    }
 
     const embedding = Array.isArray(queryEmbedding[0]) ? queryEmbedding[0] : queryEmbedding;
     const score = searchQuerySql.similarityScore(articleChunks.embedding, embedding).as('score');

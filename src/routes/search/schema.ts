@@ -47,5 +47,6 @@ export const hybridSearchDocs: DescribeRouteOptions = {
             }
         }, 'Search results'),
         400: responses.badRequest,
+        502: responses.embeddingError,
     }
 };
