@@ -2,15 +2,15 @@ services:
   db:
     image: pgvector/pgvector:pg16
     environment:
-      POSTGRES_USER: mindplex
-      POSTGRES_PASSWORD: mindplex
-      POSTGRES_DB: postgres
+      POSTGRES_USER: ${DB_USER:-mindplex}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-mindplex}
+      POSTGRES_DB: ${DB_NAME:-semantic}
     ports:
-      - "5432:5432"
+      - "${DB_PORT:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U mindplex -d postgres"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -31,15 +31,16 @@ services:
   api:
     build:
       context: .
-      target: development
+      target: ${DOCKER_TARGET:-development}
     ports:
-      - "3000:3000"
+      - "${API_PORT:-3000}:3000"
     environment:
-      DATABASE_URL: postgres://mindplex:mindplex@db:5432/semantic
-      DB_ADMIN_DATABASE: postgres
-      DB_REQUIRE_SSL: "false"
+      NODE_ENV: ${NODE_ENV:-development}
+      DATABASE_URL: postgres://${DB_USER:-mindplex}:${DB_PASSWORD:-mindplex}@db:5432/${DB_NAME:-semantic}
+      DB_ADMIN_DATABASE: ${DB_ADMIN_DATABASE:-postgres}
+      DB_REQUIRE_SSL: ${DB_REQUIRE_SSL:-false}
       REDIS_URL: redis://redis:6379
-      REDIS_TLS: "false"
+      REDIS_TLS: ${REDIS_TLS:-false}
       AWS_BEDROCK_ACCESS_KEY: ${AWS_BEDROCK_ACCESS_KEY:-}
       AWS_BEDROCK_SECRET_KEY: ${AWS_BEDROCK_SECRET_KEY:-}
       AWS_REGION: ${AWS_REGION:-us-east-1}
@@ -50,6 +51,14 @@ services:
       EMBEDDING_BATCH_SIZE: ${EMBEDDING_BATCH_SIZE:-1}
       INGEST_API_KEY: ${INGEST_API_KEY:-}
       API_KEY: ${API_KEY:-}
+      JWT_SECRET: ${JWT_SECRET:-}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:-}
+      JWT_JWKS_URI: ${JWT_JWKS_URI:-}
+      JWT_ALG: ${JWT_ALG:-}
+      JWT_ALLOWED_ALGS: ${JWT_ALLOWED_ALGS:-}
+      JWT_ISSUER: ${JWT_ISSUER:-}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-}
+      JWT_ROLE_CLAIM: ${JWT_ROLE_CLAIM:-}
     command: >
       /bin/sh -c "
       echo '[startup] db:setup' &&
@@ -68,6 +77,14 @@ services:
         - action: sync
           path: ./src
           target: /app/src
+        - action: rebuild
+          path: ./drizzle
+        - action: rebuild
+          path: ./drizzle.config.ts
+        - action: rebuild
+          path: ./package.json
+        - action: rebuild
+          path: ./bun.lock
 volumes:
   pgdata:
   redisdata:

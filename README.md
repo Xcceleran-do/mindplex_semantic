@@ -31,16 +31,41 @@ See [docs/api.md](docs/api.md) for the endpoint reference.
 bun install
 ```
 
-2. Start PostgreSQL and Redis:
+2. Create a local env file:
 
 ```bash
-docker compose -f Docker-compose.yml up -d db redis
+cp .env.example .env
 ```
 
-3. Set environment variables in `.env`:
+3. Start the full stack with Docker Compose:
+
+```bash
+make dev
+```
+
+This builds the API image, starts PostgreSQL and Redis, bootstraps the database,
+applies dev migrations, and runs the API with Compose watch.
+
+For local Bun development, run only the shared infrastructure:
+
+```bash
+make infra
+```
+
+Then initialize the database and start the API locally:
+
+```bash
+make bootstrap
+make dev-migrate
+bun run dev
+```
+
+4. Set environment variables in `.env`:
 
 ```bash
 DATABASE_URL=postgres://mindplex:mindplex@localhost:5432/semantic
+DB_ADMIN_DATABASE=postgres
+DB_REQUIRE_SSL=false
 REDIS_URL=redis://localhost:6379
 AWS_BEDROCK_ACCESS_KEY=...
 AWS_BEDROCK_SECRET_KEY=...
@@ -65,22 +90,17 @@ JWT_AUDIENCE=mindplex-semantic
 JWT_ROLE_CLAIM=role
 ```
 
-4. Bootstrap the database and extensions:
+## Developer commands
 
 ```bash
-bun run db:setup
-```
-
-5. Apply migrations:
-
-```bash
-bun run db:dev-migrate
-```
-
-6. Run the API:
-
-```bash
-bun run dev
+make help        # list supported targets
+make dev         # full Docker Compose dev stack
+make infra       # only Postgres and Redis
+make fresh       # reset volumes, bootstrap DB, and apply dev migrations
+make test        # run Bun tests
+make db          # open psql in the db container
+make redis       # open redis-cli
+make logs        # follow API container logs
 ```
 
 ## Useful endpoints

@@ -1,0 +1,51 @@
+name: Test
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: mindplex
+          POSTGRES_PASSWORD: mindplex
+          POSTGRES_DB: semantic
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U mindplex -d semantic"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgres://mindplex:mindplex@localhost:5432/semantic
+      DB_ADMIN_DATABASE: postgres
+      DB_REQUIRE_SSL: "false"
+      REDIS_URL: redis://localhost:6379
+      REDIS_TLS: "false"
+      INGEST_API_KEY: test-ingest-key
+      API_KEY: test-api-key
+      JWT_SECRET: test-secret
+      JWT_ALG: HS256
+      AWS_BEDROCK_ACCESS_KEY: test-access-key
+      AWS_BEDROCK_SECRET_KEY: test-secret-key
+      AWS_REGION: us-east-1
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+
+      - run: bun install --frozen-lockfile
+
+      - run: bun run test
