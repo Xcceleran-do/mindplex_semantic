@@ -7,11 +7,11 @@ import { eq } from 'drizzle-orm'
 import { vValidator } from '@hono/valibot-validator'
 import { describeRoute } from 'hono-openapi'
 import { IngestArticleSchema, IngestUserSchema, ingestArticleDocs, ingestUserDocs } from './schema'
-import { requireApiKey } from '$src/middleware/apiKey'
+import { requireWriteAuth } from '$src/middleware/writeAuth'
 
 const ingest = new Hono<AppContext>()
 
-ingest.post('/articles', requireApiKey({ envKeys: ['INGEST_API_KEY', 'API_KEY'] }), describeRoute(ingestArticleDocs), vValidator('json', IngestArticleSchema), async (c) => {
+ingest.post('/articles', requireWriteAuth({ apiKeyEnvKeys: ['INGEST_API_KEY', 'API_KEY'], jwtAccess: 'editor' }), describeRoute(ingestArticleDocs), vValidator('json', IngestArticleSchema), async (c) => {
     const body = c.req.valid('json');
     const db = c.get('db');
     const schema = c.get('schema')
@@ -74,7 +74,7 @@ ingest.post('/articles', requireApiKey({ envKeys: ['INGEST_API_KEY', 'API_KEY'] 
     }
 })
 
-ingest.post('/users', requireApiKey({ envKeys: ['INGEST_API_KEY', 'API_KEY'] }), describeRoute(ingestUserDocs), vValidator('json', IngestUserSchema), async (c) => {
+ingest.post('/users', requireWriteAuth({ apiKeyEnvKeys: ['INGEST_API_KEY', 'API_KEY'], jwtAccess: 'editor' }), describeRoute(ingestUserDocs), vValidator('json', IngestUserSchema), async (c) => {
     const userData = c.req.valid('json');
     const db = c.get('db');
     const schema = c.get('schema')

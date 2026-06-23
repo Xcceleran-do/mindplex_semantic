@@ -1,11 +1,21 @@
-import { describe, expect, it } from 'bun:test'
+import { afterEach, describe, expect, it } from 'bun:test'
 import { Hono } from 'hono'
 
 import { guard } from '$src/middleware/guard'
 import type { AppContext } from '$src/types'
-import { createAuthHeaders } from '../helpers/auth'
+import {
+    clearJwtTestEnv,
+    configureBackendJwksUri,
+    configureBackendPublicJwk,
+    createAuthHeaders,
+    createBackendJwtFixture,
+} from '../helpers/auth'
 
 describe('guard middleware', () => {
+    afterEach(() => {
+        clearJwtTestEnv()
+    })
+
     it('allows optional access when no token is present', async () => {
         const app = new Hono<AppContext>()
         app.get('/optional', guard('optional'), (c) => c.json({ auth: c.get('auth') }))
@@ -73,5 +83,47 @@ describe('guard middleware', () => {
         expect(res.status).toBe(200)
         const body = await res.json()
         expect(body.roles).toEqual(['collaborator', 'editor'])
+    })
+
+    it('verifies backend EdDSA tokens with a public JWK', async () => {
+        const { headers, publicJwk } = await createBackendJwtFixture('editor')
+        configureBackendPublicJwk(publicJwk)
+
+        const app = new Hono<AppContext>()
+        app.get('/protected', guard('editor'), (c) => c.json({ subject: c.get('auth')?.subject }))
+
+        const res = await app.request('/protected', { headers })
+
+        expect(res.status).toBe(200)
+        const body = await res.json()
+        expect(body.subject).toBe('backend-user')
+    })
+
+    it('verifies backend EdDSA tokens from JWKS URI', async () => {
+        const { headers, publicJwk } = await createBackendJwtFixture('moderator')
+        const jwksUri = 'https://api.example.test/.well-known/jwks.json'
+        const originalFetch = globalThis.fetch
+
+        configureBackendJwksUri(jwksUri)
+        globalThis.fetch = (async (input) => {
+            expect(String(input)).toBe(jwksUri)
+            return new Response(JSON.stringify({ keys: [publicJwk] }), {
+                status: 200,
+                headers: { 'content-type': 'application/json' },
+            })
+        }) as typeof fetch
+
+        try {
+            const app = new Hono<AppContext>()
+            app.get('/protected', guard('editor'), (c) => c.json({ access: c.get('auth')?.access }))
+
+            const res = await app.request('/protected', { headers })
+
+            expect(res.status).toBe(200)
+            const body = await res.json()
+            expect(body.access).toBe('moderator')
+        } finally {
+            globalThis.fetch = originalFetch
+        }
     })
 })

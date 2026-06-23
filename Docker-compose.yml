@@ -52,6 +52,7 @@ services:
       INGEST_API_KEY: ${INGEST_API_KEY:-}
       API_KEY: ${API_KEY:-}
       JWT_SECRET: ${JWT_SECRET:-}
+      JWT_PUBLIC_JWK: ${JWT_PUBLIC_JWK:-}
       JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:-}
       JWT_JWKS_URI: ${JWT_JWKS_URI:-}
       JWT_ALG: ${JWT_ALG:-}

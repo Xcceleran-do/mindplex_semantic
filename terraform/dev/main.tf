@@ -121,5 +121,21 @@ module "mindplex_semantic" {
       name  = "API_KEY"
       value = var.API_KEY
     },
+    {
+      name  = "JWT_JWKS_URI"
+      value = "https://api-dev.mindplex.ai/.well-known/jwks.json"
+    },
+    {
+      name  = "JWT_ALG"
+      value = "EdDSA"
+    },
+    {
+      name  = "JWT_ISSUER"
+      value = "mindplex"
+    },
+    {
+      name  = "JWT_AUDIENCE"
+      value = "mindplex-api"
+    },
   ]
 }

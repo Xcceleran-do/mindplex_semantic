@@ -71,12 +71,14 @@ AWS_BEDROCK_ACCESS_KEY=...
 AWS_BEDROCK_SECRET_KEY=...
 AWS_REGION=us-east-1
 
-# JWT auth (choose one verification mode)
+# JWT auth (choose one verification mode). Mindplex backend exposes EdDSA JWKS at /.well-known/jwks.json.
 JWT_SECRET=...
+# or
+JWT_PUBLIC_JWK='{"kty":"OKP","crv":"Ed25519",...}'
 # or
 JWT_PUBLIC_KEY="-----BEGIN PUBLIC KEY-----\n...\n-----END PUBLIC KEY-----"
 # or
-JWT_JWKS_URI=https://auth.example.com/.well-known/jwks.json
+JWT_JWKS_URI=http://<mindplex-api-host>/.well-known/jwks.json
 
 # API key auth for ingestion
 INGEST_API_KEY=replace-with-a-shared-secret
@@ -84,9 +86,9 @@ INGEST_API_KEY=replace-with-a-shared-secret
 API_KEY=replace-with-a-shared-secret
 
 # Optional verification settings
-JWT_ALG=HS256
-JWT_ISSUER=https://auth.example.com
-JWT_AUDIENCE=mindplex-semantic
+JWT_ALG=EdDSA
+JWT_ISSUER=mindplex
+JWT_AUDIENCE=mindplex-api
 JWT_ROLE_CLAIM=role
 ```
 
@@ -132,6 +134,7 @@ The script expects the API to be reachable at `http://localhost:3000` by default
 - `guard()` defaults to `admin` access.
 - `guard('optional')` parses JWTs when present and skips auth when absent.
 - `guard('editor')`, `guard('admin')`, and `guard('collaborator')` enforce minimum role access.
+- Backend-compatible JWT verification supports `JWT_JWKS_URI`, `JWT_PUBLIC_JWK`, `JWT_PUBLIC_KEY`, or `JWT_SECRET`. The Mindplex backend signs access tokens with `alg=EdDSA`, `iss=mindplex`, and `aud=mindplex-api`.
 - Role detection defaults to common claims such as `role`, `roles`, `scope`, `scp`, `permissions`, and `realm_access.roles`.
 - `JWT_ROLE_CLAIM` can override the role claim path with one or more comma-separated claim paths.
-- Protected write endpoints use API key protection via `x-api-key` or `Authorization: ApiKey <key>`.
+- Protected write endpoints accept a valid backend `Bearer` JWT with at least `editor` access, or the legacy API key via `x-api-key` / `Authorization: ApiKey <key>`.

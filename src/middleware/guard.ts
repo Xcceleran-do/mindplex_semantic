@@ -4,13 +4,15 @@ import { verify, verifyWithJwks } from 'hono/jwt'
 import type { AppContext } from '$src/types'
 
 export const ACCESS = {
+    user: 0,
     collaborator: 1,
     editor: 2,
-    admin: 3,
+    moderator: 3,
+    admin: 4,
 } as const
 
 export type Access = keyof typeof ACCESS
-export type GuardMode = 'optional' | Access
+export type GuardMode = 'optional' | 'authenticated' | Access
 
 export type AuthTokenPayload = {
     [key: string]: unknown
@@ -39,7 +41,7 @@ type JwtVerificationConfig =
     }
     | {
         kind: 'public-key'
-        publicKey: string
+        publicKey: string | Record<string, unknown>
         alg: string
         verification: JwtVerificationOptions
     }
@@ -60,11 +62,15 @@ type AuthenticateResult = {
     response: Response | null
 }
 
+type MiddlewareContext = Parameters<ReturnType<typeof createMiddleware<AppContext>>>[0]
+
 const ACCESS_ALIASES: Record<string, Access> = {
     admin: 'admin',
     administrator: 'admin',
     collaborator: 'collaborator',
     editor: 'editor',
+    moderator: 'moderator',
+    user: 'user',
 }
 
 const DEFAULT_ROLE_CLAIMS = [
@@ -78,7 +84,7 @@ const DEFAULT_ROLE_CLAIMS = [
 
 export function guard(mode: GuardMode = 'admin') {
     return createMiddleware<AppContext>(async (c, next) => {
-        const { auth, response } = await authenticate(c)
+        const { auth, response } = await authenticateRequest(c)
 
         if (response) return response
 
@@ -94,7 +100,7 @@ export function guard(mode: GuardMode = 'admin') {
             }, 401)
         }
 
-        if (!hasRequiredAccess(auth.access, mode)) {
+        if (!authMeetsMode(auth, mode)) {
             return c.json({
                 success: false,
                 error: 'Insufficient permissions',
@@ -105,7 +111,7 @@ export function guard(mode: GuardMode = 'admin') {
     })
 }
 
-async function authenticate(c: Parameters<ReturnType<typeof createMiddleware<AppContext>>>[0]): Promise<AuthenticateResult> {
+export async function authenticateRequest(c: MiddlewareContext): Promise<AuthenticateResult> {
     const cached = c.get('auth')
     if (cached !== undefined) {
         return { auth: cached, response: null }
@@ -129,7 +135,20 @@ async function authenticate(c: Parameters<ReturnType<typeof createMiddleware<App
         }
     }
 
-    const config = getJwtVerificationConfig()
+    let config: JwtVerificationConfig | null
+    try {
+        config = getJwtVerificationConfig()
+    } catch (error) {
+        console.error('JWT verification configuration is invalid:', error)
+        return {
+            auth: null,
+            response: c.json({
+                success: false,
+                error: 'Authentication is not configured',
+            }, 500),
+        }
+    }
+
     if (!config) {
         console.error('JWT auth is enabled on a route, but verification is not configured')
         return {
@@ -174,14 +193,24 @@ function extractBearerToken(headerValue: string) {
     return token
 }
 
-function hasRequiredAccess(current: Access | null, required: Access) {
+export function authMeetsMode(auth: AuthContextValue, mode: Exclude<GuardMode, 'optional'>) {
+    if (mode === 'authenticated') return true
+    return hasRequiredAccess(auth.access, mode)
+}
+
+export function hasRequiredAccess(current: Access | null, required: Access) {
     if (!current) return false
     return ACCESS[current] >= ACCESS[required]
+}
+
+export function isJwtAuthConfigured() {
+    return getJwtVerificationConfig() !== null
 }
 
 function getJwtVerificationConfig(): JwtVerificationConfig | null {
     const verification = buildVerificationOptions()
     const secret = process.env.JWT_SECRET?.trim()
+    const publicJwk = parseJsonEnv(process.env.JWT_PUBLIC_JWK)
     const publicKey = normalizeMultilineEnv(process.env.JWT_PUBLIC_KEY)
     const jwksUri = process.env.JWT_JWKS_URI?.trim()
     const alg = process.env.JWT_ALG?.trim()
@@ -191,6 +220,15 @@ function getJwtVerificationConfig(): JwtVerificationConfig | null {
             kind: 'secret',
             secret,
             alg: alg || 'HS256',
+            verification,
+        }
+    }
+
+    if (publicJwk) {
+        return {
+            kind: 'public-key',
+            publicKey: publicJwk,
+            alg: alg || inferJwkAlg(publicJwk) || 'EdDSA',
             verification,
         }
     }
@@ -209,7 +247,7 @@ function getJwtVerificationConfig(): JwtVerificationConfig | null {
         return {
             kind: 'jwks',
             jwksUri,
-            allowedAlgorithms: allowedAlgorithms.length > 0 ? allowedAlgorithms : ['RS256'],
+            allowedAlgorithms: allowedAlgorithms.length > 0 ? allowedAlgorithms : (alg ? [alg] : ['EdDSA', 'RS256']),
             verification,
         }
     }
@@ -310,4 +348,28 @@ function parseCsv(value: string | undefined) {
 function normalizeMultilineEnv(value: string | undefined) {
     if (!value) return undefined
     return value.replace(/\\n/g, '\n').trim()
+}
+
+function parseJsonEnv(value: string | undefined) {
+    if (!value?.trim()) return null
+
+    try {
+        const parsed = JSON.parse(value)
+        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+            throw new Error('JWT_PUBLIC_JWK must be a JSON object')
+        }
+        return parsed as Record<string, unknown>
+    } catch (error) {
+        throw new Error(`Invalid JWT_PUBLIC_JWK: ${(error as Error).message}`)
+    }
+}
+
+function inferJwkAlg(jwk: Record<string, unknown>) {
+    if (typeof jwk.alg === 'string') return jwk.alg
+    if (jwk.kty === 'OKP' && jwk.crv === 'Ed25519') return 'EdDSA'
+    if (jwk.kty === 'RSA') return 'RS256'
+    if (jwk.kty === 'EC' && jwk.crv === 'P-256') return 'ES256'
+    if (jwk.kty === 'EC' && jwk.crv === 'P-384') return 'ES384'
+    if (jwk.kty === 'EC' && jwk.crv === 'P-521') return 'ES512'
+    return null
 }
