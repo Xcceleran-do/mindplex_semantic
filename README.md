@@ -1,3 +1,6 @@
+> [!WARNING]
+> This project is deprecated and no longer maintained. It is provided for reference only. we merged the functionality into the main [Mindplex API](https://github.com/Xcceleran-do/mindplex_api/) repo and will continue to maintain it there.
+
 # Mindplex Semantic
 
 Mindplex Semantic is the search and indexing service behind article discovery, fuzzy user lookup, chunk retrieval, and tone-specific article summaries.
